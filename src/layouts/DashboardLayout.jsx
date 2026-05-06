@@ -4,11 +4,13 @@ import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 
 const NAV = [
-  { to:'/dashboard', label:'Dashboard', icon:<svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> },
+  { to:'/dashboard',    label:'Dashboard',    icon:<svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> },
   { to:'/transactions', label:'Transactions', icon:<svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg> },
-  { to:'/budgets', label:'Budgets', icon:<svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></svg> },
-  { to:'/analytics', label:'Analytics', icon:<svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> },
-  { to:'/categories', label:'Categories', icon:<svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none"/></svg> },
+  { to:'/budgets',      label:'Budgets',      icon:<svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></svg> },
+  { to:'/analytics',   label:'Analytics',   icon:<svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> },
+  { to:'/insights',    label:'Insights',    icon:<svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> },
+  { to:'/reports',     label:'Reports',     icon:<svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> },
+  { to:'/categories',  label:'Categories',  icon:<svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none"/></svg> },
 ]
 
 function Sidebar({ mobile, onClose }) {
@@ -52,7 +54,7 @@ function Sidebar({ mobile, onClose }) {
       </div>
 
       {/* Nav */}
-      <nav style={{ padding:'12px 10px', flex:1 }}>
+      <nav style={{ padding:'12px 10px', flex:1, overflowY:'auto' }}>
         {NAV.map(item => (
           <NavLink key={item.to} to={item.to} onClick={onClose}
             className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
@@ -113,18 +115,15 @@ export default function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   return (
     <div style={{ display:'flex', minHeight:'100vh' }}>
-      {/* Desktop sidebar */}
       <div className="hidden md:block" style={{ flexShrink:0 }}>
         <Sidebar />
       </div>
-      {/* Mobile sidebar */}
       {mobileOpen && (
         <div style={{ position:'fixed', inset:0, zIndex:200 }}>
           <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.5)' }} onClick={()=>setMobileOpen(false)} />
           <Sidebar mobile onClose={()=>setMobileOpen(false)} />
         </div>
       )}
-      {/* Main */}
       <div style={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, overflow:'hidden' }}>
         <div className="md:hidden"><Topbar onMenuClick={()=>setMobileOpen(true)} /></div>
         <main style={{ flex:1, overflowY:'auto', overflowX:'hidden' }}>
