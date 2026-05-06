@@ -8,6 +8,8 @@ import Transactions from './pages/Transactions'
 import Budgets from './pages/Budgets'
 import Analytics from './pages/Analytics'
 import Categories from './pages/Categories'
+import Insights from './pages/Insights'
+import Reports  from './pages/Reports'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -39,6 +41,8 @@ export default function App() {
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/budgets" element={<Budgets />} />
         <Route path="/analytics" element={<Analytics />} />
+        <Route path="/insights" element={<Insights/>}/>
+        <Route path="/reports"  element={<Reports/>}/>
         <Route path="/categories" element={<Categories />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

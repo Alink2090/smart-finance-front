@@ -1,9 +1,17 @@
 import axios from 'axios'
 
-const BASE = import.meta.env.VITE_API_URL 
+const BASE_1 = import.meta.env.VITE_API_GESTION 
+
+const BASE_2 = import.meta.env.VITE_API_ANALYTICS 
 
 const http = axios.create({
-  baseURL: BASE,
+  baseURL: BASE_1,
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 12000,
+})
+
+const httpAnalytics = axios.create({
+  baseURL: BASE_2,
   headers: { 'Content-Type': 'application/json' },
   timeout: 12000,
 })
@@ -63,6 +71,10 @@ export const transactionsAPI = {
   create:  (data)       => http.post('/transactions/create/', data),
   update:  (id, data)   => http.post('/transactions/update/', { id, ...data }),
   delete:  (id, userId) => http.post('/transactions/delete/', { id, user_id: userId }),
+  exportXLSX: (payload) => 
+    http.post('/export/', payload, {
+      responseType: 'blob' // ⚠️ important pour fichier
+    }),
 }
 
 // ── Categories ────────────────────────────────────────────────────────────────
@@ -81,10 +93,46 @@ export const budgetsAPI = {
 }
 
 // ── Analytics ─────────────────────────────────────────────────────────────────
+//export const analyticsAPI = {
+//  dashboard:        (userId) => http.post('/analytics/dashboard/', { user_id: userId }),
+//  categoryExpenses: (userId) => http.post('/analytics/category-expenses/', { user_id: userId }),
+//  monthlyExpenses:  (userId) => http.post('/analytics/monthly-expenses/', { user_id: userId }),
+//}
+
+// ── Analytics — tous les calculs sont maintenant faits côté Django ─────────────
 export const analyticsAPI = {
-  dashboard:        (userId) => http.post('/analytics/dashboard/', { user_id: userId }),
-  categoryExpenses: (userId) => http.post('/analytics/category-expenses/', { user_id: userId }),
-  monthlyExpenses:  (userId) => http.post('/analytics/monthly-expenses/', { user_id: userId }),
+  /**
+   * GET /analytics/dashboard/
+   * Retourne : { total_income, total_expenses, balance,
+   *              budget_usage_percent, savings_rate, expense_ratio }
+   */
+  dashboard: userId =>
+    httpAnalytics.post('/Api_analytics/dashboard/', { user_id: userId }),
+ 
+  /**
+   * GET /analytics/monthly-expenses/
+   * Retourne : { data: [...], metrics: { avg_monthly_expense, avg_monthly_income,
+   *              exp_growth, inc_growth, worst_month, projection_next_expense,
+   *              anomaly, monthly_with_projection, curr, prev } }
+   */
+  monthlyExpenses: (userId, period = 6) =>
+    httpAnalytics.post('/Api_analytics/monthly-expenses/', { user_id: userId, period }),
+ 
+  /**
+   * GET /analytics/category-expenses/
+   * Retourne : { data: [...], top_category: { name, amount, share_pct, color } }
+   */
+  categoryExpenses: userId =>
+    httpAnalytics.post('/Api_analytics/category-expenses/', { user_id: userId }),
+ 
+  /**
+   * NOUVEAU — /analytics/insights/
+   * Retourne : { insights: [...], summary: { total, alerts, opportunities, trends } }
+   * Remplace generateInsights() + useInsights() côté React
+   */
+  insights: userId =>
+    httpAnalytics.post('/Api_analytics/insights/', { user_id: userId }),
 }
+
 
 export default http
