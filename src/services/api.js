@@ -1,17 +1,9 @@
 import axios from 'axios'
 
-const BASE_1 = import.meta.env.VITE_API_GESTION 
-
-const BASE_2 = import.meta.env.VITE_API_ANALYTICS 
+const BASE = import.meta.env.VITE_API_URL
 
 const http = axios.create({
-  baseURL: BASE_1,
-  headers: { 'Content-Type': 'application/json' },
-  timeout: 12000,
-})
-
-const httpAnalytics = axios.create({
-  baseURL: BASE_2,
+  baseURL: BASE,
   headers: { 'Content-Type': 'application/json' },
   timeout: 12000,
 })
@@ -45,51 +37,51 @@ http.interceptors.response.use(
 export const authAPI = {
 
   // Register — étape 1 : envoyer l'OTP (vérifie aussi que l'email n'existe pas)
-  sendRegisterOtp: (data) => http.post('/send-register-otp/', data),
+  sendRegisterOtp: (data) => http.post('/Api_Gestion/send-register-otp/', data),
   // data: { email, name }
   // errors: 409 si email déjà utilisé
 
   // Register — étape 2 : vérifier OTP + créer le compte
-  register: (data) => http.post('/register/', data),
+  register: (data) => http.post('/Api_Gestion/register/', data),
   // data: { name, email, password, otp }
 
   // Login — étape 1 : vérifier credentials + envoyer l'OTP
-  sendLoginOtp: (data) => http.post('/send-login-otp/', data),
+  sendLoginOtp: (data) => http.post('/Api_Gestion/send-login-otp/', data),
   // data: { email, password }
 
   // Login — étape 2 : vérifier OTP + retourner le token
-  login: (data) => http.post('/login/', data),
+  login: (data) => http.post('/Api_Gestion/login/', data),
   // data: { email, password, otp }
   // returns: { token, refresh, user }
 
-  profile: (data) => http.post('/profile/', data),
+  profile: (data) => http.post('/Api_Gestion/profile/', data),
 }
 
 // ── Transactions ──────────────────────────────────────────────────────────────
 export const transactionsAPI = {
-  getAll:  (userId)     => http.post('/transactions/get-all/', { user_id: userId }),
-  create:  (data)       => http.post('/transactions/create/', data),
-  update:  (id, data)   => http.post('/transactions/update/', { id, ...data }),
-  delete:  (id, userId) => http.post('/transactions/delete/', { id, user_id: userId }),
+  getAll:  (userId)     => http.post('/Api_Gestion/transactions/get-all/', { user_id: userId }),
+  create:  (data)       => http.post('/Api_Gestion/transactions/create/', data),
+  update:  (id, data)   => http.post('/Api_Gestion/transactions/update/', { id, ...data }),
+  delete:  (id, userId) => http.post('/Api_Gestion/transactions/delete/', { id, user_id: userId }),
   exportXLSX: (payload) => 
-    http.post('/export/', payload, {
+    http.post('/Api_Gestion/export/', payload, {
       responseType: 'blob' // ⚠️ important pour fichier
     }),
 }
 
 // ── Categories ────────────────────────────────────────────────────────────────
 export const categoriesAPI = {
-  getAll: ()     => http.get('/categories/get/'),
-  create: (data) => http.post('/categories/create/', data),
-  delete: (id)   => http.delete(`/categories/${id}/`),
+  getAll: ()     => http.get('/Api_Gestion/categories/get/'),
+  create: (data) => http.post('/Api_Gestion/categories/create/', data),
+  delete: (id)   => http.delete(`/Api_Gestion/categories/${id}/`),
 }
 
 // ── Budgets ───────────────────────────────────────────────────────────────────
 export const budgetsAPI = {
-  getAll: (userId)            => http.post('/budgets/list/', { user_id: userId }),
-  create: (data)              => http.post('/budgets/create/', data),
-  update: (data)              => http.post('/budgets/update/', data),
-  delete: (budgetId, userId)  => http.post(`/budgets/delete/${budgetId}/`, { user_id: userId }),
+  getAll: (userId)            => http.post('/Api_Gestion/budgets/list/', { user_id: userId }),
+  create: (data)              => http.post('/Api_Gestion/budgets/create/', data),
+  update: (data)              => http.post('/Api_Gestion/budgets/update/', data),
+  delete: (budgetId, userId)  => http.post(`/Api_Gestion/budgets/delete/${budgetId}/`, { user_id: userId }),
 }
 
 // ── Analytics ─────────────────────────────────────────────────────────────────
@@ -107,7 +99,7 @@ export const analyticsAPI = {
    *              budget_usage_percent, savings_rate, expense_ratio }
    */
   dashboard: userId =>
-    httpAnalytics.post('/dashboard/', { user_id: userId }),
+    http.post('/Api_analytics/dashboard/', { user_id: userId }),
  
   /**
    * GET /analytics/monthly-expenses/
@@ -116,14 +108,14 @@ export const analyticsAPI = {
    *              anomaly, monthly_with_projection, curr, prev } }
    */
   monthlyExpenses: (userId, period = 6) =>
-    httpAnalytics.post('/monthly-expenses/', { user_id: userId, period }),
+    http.post('/Api_analytics/monthly-expenses/', { user_id: userId, period }),
  
   /**
    * GET /analytics/category-expenses/
    * Retourne : { data: [...], top_category: { name, amount, share_pct, color } }
    */
   categoryExpenses: userId =>
-    httpAnalytics.post('/category-expenses/', { user_id: userId }),
+    http.post('/Api_analytics/category-expenses/', { user_id: userId }),
  
   /**
    * NOUVEAU — /analytics/insights/
@@ -131,7 +123,7 @@ export const analyticsAPI = {
    * Remplace generateInsights() + useInsights() côté React
    */
   insights: userId =>
-    httpAnalytics.post('/insights/', { user_id: userId }),
+    http.post('/Api_analytics/insights/', { user_id: userId }),
 }
 
 
