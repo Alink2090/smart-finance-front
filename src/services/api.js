@@ -107,7 +107,7 @@ export const analyticsAPI = {
    *              budget_usage_percent, savings_rate, expense_ratio }
    */
   dashboard: userId =>
-    httpAnalytics.post('/Api_analytics/dashboard/', { user_id: userId }),
+    httpAnalytics.post('/dashboard/', { user_id: userId }),
  
   /**
    * GET /analytics/monthly-expenses/
@@ -116,14 +116,14 @@ export const analyticsAPI = {
    *              anomaly, monthly_with_projection, curr, prev } }
    */
   monthlyExpenses: (userId, period = 6) =>
-    httpAnalytics.post('/Api_analytics/monthly-expenses/', { user_id: userId, period }),
+    httpAnalytics.post('/monthly-expenses/', { user_id: userId, period }),
  
   /**
    * GET /analytics/category-expenses/
    * Retourne : { data: [...], top_category: { name, amount, share_pct, color } }
    */
   categoryExpenses: userId =>
-    httpAnalytics.post('/Api_analytics/category-expenses/', { user_id: userId }),
+    httpAnalytics.post('/category-expenses/', { user_id: userId }),
  
   /**
    * NOUVEAU — /analytics/insights/
@@ -131,7 +131,7 @@ export const analyticsAPI = {
    * Remplace generateInsights() + useInsights() côté React
    */
   insights: userId =>
-    httpAnalytics.post('/Api_analytics/insights/', { user_id: userId }),
+    httpAnalytics.post('/insights/', { user_id: userId }),
 }
 
 
