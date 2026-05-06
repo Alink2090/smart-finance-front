@@ -1,8 +1,8 @@
 import axios from 'axios'
 
-const BASE_1 = import.meta.env.VITE_API_GESTION || 'http://localhost:8052/Api_Gestion'
+const BASE_1 = import.meta.env.VITE_API_GESTION 
 
-const BASE_2 = import.meta.env.VITE_API_ANALYTICS || 'http://localhost:8052'
+const BASE_2 = import.meta.env.VITE_API_ANALYTICS 
 
 const http = axios.create({
   baseURL: BASE_1,
