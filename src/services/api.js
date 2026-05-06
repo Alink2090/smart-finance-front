@@ -1,9 +1,17 @@
 import axios from 'axios'
 
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8052/Api_Gestion'
+const BASE_1 = import.meta.env.VITE_API_GESTION || 'http://localhost:8052/Api_Gestion'
+
+const BASE_2 = import.meta.env.VITE_API_ANALYTICS || 'http://localhost:8052'
 
 const http = axios.create({
-  baseURL: BASE,
+  baseURL: BASE_1,
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 12000,
+})
+
+const httpAnalytics = axios.create({
+  baseURL: BASE_2,
   headers: { 'Content-Type': 'application/json' },
   timeout: 12000,
 })
@@ -99,7 +107,7 @@ export const analyticsAPI = {
    *              budget_usage_percent, savings_rate, expense_ratio }
    */
   dashboard: userId =>
-    http.post('http://localhost:8052/Api_analytics/dashboard/', { user_id: userId }),
+    httpAnalytics.post('/Api_analytics/dashboard/', { user_id: userId }),
  
   /**
    * GET /analytics/monthly-expenses/
@@ -108,14 +116,14 @@ export const analyticsAPI = {
    *              anomaly, monthly_with_projection, curr, prev } }
    */
   monthlyExpenses: (userId, period = 6) =>
-    http.post('http://localhost:8052/Api_analytics/monthly-expenses/', { user_id: userId, period }),
+    httpAnalytics.post('/Api_analytics/monthly-expenses/', { user_id: userId, period }),
  
   /**
    * GET /analytics/category-expenses/
    * Retourne : { data: [...], top_category: { name, amount, share_pct, color } }
    */
   categoryExpenses: userId =>
-    http.post('http://localhost:8052/Api_analytics/category-expenses/', { user_id: userId }),
+    httpAnalytics.post('/Api_analytics/category-expenses/', { user_id: userId }),
  
   /**
    * NOUVEAU — /analytics/insights/
@@ -123,7 +131,7 @@ export const analyticsAPI = {
    * Remplace generateInsights() + useInsights() côté React
    */
   insights: userId =>
-    http.post('http://localhost:8052/Api_analytics/insights/', { user_id: userId }),
+    httpAnalytics.post('/Api_analytics/insights/', { user_id: userId }),
 }
 
 
