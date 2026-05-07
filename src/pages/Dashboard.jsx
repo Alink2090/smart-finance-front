@@ -75,8 +75,6 @@ export default function Dashboard() {
     let active = true
     setLoading(true)
 
-    console.log(user.id)
-
     Promise.all([
       analyticsAPI.dashboard(user.id),
       analyticsAPI.monthlyExpenses(user.id, 6),

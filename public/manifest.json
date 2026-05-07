@@ -1,0 +1,21 @@
+{
+  "name": "ADNDIAL",
+  "short_name": "ADNDIAL",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#7c6cfc",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x152",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x406",
+      "type": "image/png"
+    }
+  ]
+}

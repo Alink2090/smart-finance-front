@@ -315,9 +315,9 @@ export default function Login() {
                 boxShadow:'0 8px 28px rgba(124,108,252,.45)',
                 position:'relative',
               }}>
-                <svg width="24" height="24" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <line x1="12" y1="1" x2="12" y2="23"/>
-                  <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+                <svg width="26" height="26" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
                 </svg>
                 {/* Halo */}
                 <div style={{ position:'absolute', inset:-8, borderRadius:26, background:'rgba(124,108,252,.08)', zIndex:-1 }}/>
