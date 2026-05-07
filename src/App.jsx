@@ -32,6 +32,14 @@ function PublicRoute({ children }) {
 }
 
 export default function App() {
+  useEffect(() => {
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+    if (isIOS) {
+      alert("Pour installer l'application : cliquez sur Partager puis 'Sur l’écran d’accueil'");
+    }
+  }, []);
+
   return (
     <>
       <InstallButton />

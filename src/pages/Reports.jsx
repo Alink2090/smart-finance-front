@@ -24,7 +24,7 @@ function exportCSV(transactions, filename = 'transactions.csv') {
     `"${(t.title ?? '').replace(/"/g, '""')}"`,
     `"${(t.category?.name ?? '').replace(/"/g, '""')}"`,
     t.type ?? '',
-    (t.amount ?? 0).toString(),
+    (t.amount ?? 0).toString()+ "Fcfa",
     `"${(t.payment_method ?? '').replace(/"/g, '""')}"`,
     `"${(t.notes ?? '').replace(/"/g, '""')}"`,
   ])
