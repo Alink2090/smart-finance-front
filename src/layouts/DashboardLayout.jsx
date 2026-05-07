@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
+import logo from '../assets/logo_1.png'
 
 const NAV = [
   { to:'/dashboard',    label:'Dashboard',    icon:<svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> },
@@ -37,14 +38,24 @@ function Sidebar({ mobile, onClose }) {
       <div style={{ padding:'22px 18px 18px', borderBottom:'1px solid var(--border)' }}>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
           <div style={{
-            width:34, height:34, borderRadius:10, flexShrink:0,
+            width:40,
+            height:40,
+            borderRadius:12,
             background:'linear-gradient(135deg,#7c6cfc,#5b4de8)',
-            display:'flex', alignItems:'center', justifyContent:'center'
+            display:'flex',
+            alignItems:'center',
+            justifyContent:'center'
           }}>
-            <svg width="16" height="16" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
-              <line x1="12" y1="1" x2="12" y2="23"/>
-              <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
-            </svg>
+            <img
+              src={logo}
+              alt="logo"
+              style={{
+                width:40,
+                height:40,
+                borderRadius:12,
+                objectFit:'contain'
+              }}
+            />
           </div>
           <div>
             <div style={{ fontSize:14, fontWeight:800, color:'var(--text)', letterSpacing:'-.02em' }}>SmartFinance</div>
