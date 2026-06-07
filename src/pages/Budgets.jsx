@@ -1,10 +1,15 @@
+<<<<<<< HEAD
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
+=======
+import { useState, useEffect, useCallback, useMemo } from 'react'
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
 import { budgetsAPI, categoriesAPI } from '../services/api'
 import { useToast } from '../context/ToastContext'
 import { useAuth } from '../context/AuthContext'
 
+<<<<<<< HEAD
 const fmt  = n => `${new Intl.NumberFormat('fr-FR').format(Number(n) || 0)} FCFA`
 const fmtD = d => d ? new Date(d+'T00:00').toLocaleDateString('fr-FR',{ day:'numeric', month:'short' }) : '—'
 
@@ -47,6 +52,46 @@ function getStatus(b) {
 
 function matchesTab(b, tab) {
   const s = getStatus(b)
+=======
+const formatXOF = (n, digits = 0) =>
+  new Intl.NumberFormat('fr-FR', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits
+  }).format(Number(n) || 0) + ' FCFA'
+
+const fmt  = n => formatXOF(n, 0)
+const fmtD = d => d ? new Date(d+'T00:00').toLocaleDateString('fr-FR',{ day:'numeric', month:'short' }) : '—'
+
+// ── Statut ────────────────────────────────────────────────────────────────────
+function getStatus(b) {
+  const limit = b.limit_amount ?? b.target_amount ?? 0
+  const spent = b.spent_amount ?? b.saved_amount  ?? 0
+  const pct   = limit > 0 ? (spent / limit) * 100 : 0
+  const today = new Date(); today.setHours(0,0,0,0)
+  const start = b.start_date ? new Date(b.start_date+'T00:00') : null
+  const end   = b.end_date   ? new Date(b.end_date  +'T00:00') : null
+  const past   = end   && today > end
+  const future = start && today < start
+  const isSaving = b.budget_type === 'saving'
+
+  if (past && pct >= 100) return { key:'completed', label:isSaving?'Objectif atteint':'Terminé',  color:'#a78bfa', bg:'rgba(167,139,250,.12)', icon:'✓' }
+  if (past && pct < 100 && !isSaving) return { key:'saved',   label:'Économisé',  color:'#22d3a0', bg:'rgba(34,211,160,.12)',  icon:'✦' }
+  if (past && pct < 100 &&  isSaving) return { key:'missed',  label:'Non atteint', color:'#f59e0b', bg:'rgba(245,158,11,.12)',  icon:'✕' }
+  if (future)                          return { key:'future',  label:'À venir',     color:'#38bdf8', bg:'rgba(56,189,248,.12)',  icon:'◷' }
+  if (!isSaving && spent > limit && limit > 0) return { key:'over', label:'Dépassé', color:'#f5476a', bg:'rgba(245,71,106,.12)', icon:'⚠' }
+  if (pct >= 100 && isSaving)          return { key:'completed', label:'Objectif atteint', color:'#a78bfa', bg:'rgba(167,139,250,.12)', icon:'✓' }
+  if (!isSaving && pct >= 80)          return { key:'warning', label:'Attention',   color:'#f59e0b', bg:'rgba(245,158,11,.12)',  icon:'!' }
+  if (!past && !future)                return { key:'active',  label:'Actif',       color:'#22d3a0', bg:'rgba(34,211,160,.12)',  icon:'●' }
+  return                                      { key:'idle',    label:'Inactif',     color:'#55556a', bg:'var(--surface3)',        icon:'○' }
+}
+
+// Période relative au statut "tab"
+function matchesTab(b, tab) {
+  const today = new Date(); today.setHours(0,0,0,0)
+  const end   = b.end_date   ? new Date(b.end_date  +'T00:00') : null
+  const start = b.start_date ? new Date(b.start_date+'T00:00') : null
+  const s     = getStatus(b)
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
   if (tab === 'all')      return true
   if (tab === 'active')   return ['active','warning'].includes(s.key)
   if (tab === 'upcoming') return s.key === 'future'
@@ -62,18 +107,28 @@ function getDaysLeft(end_date) {
 }
 function getTimePct(start_date, end_date) {
   if (!start_date || !end_date) return null
+<<<<<<< HEAD
   const now=Date.now(), s=new Date(start_date+'T00:00').getTime(), e=new Date(end_date+'T00:00').getTime()
   if (e<=s) return 100
+=======
+  const now = Date.now(), s = new Date(start_date+'T00:00').getTime(), e = new Date(end_date+'T00:00').getTime()
+  if (e <= s) return 100
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
   return Math.min(100, Math.max(0, ((now-s)/(e-s))*100))
 }
 function getDuration(start_date, end_date) {
   if (!start_date || !end_date) return null
+<<<<<<< HEAD
   return Math.ceil((new Date(end_date+'T00:00')-new Date(start_date+'T00:00'))/86400000)
+=======
+  return Math.ceil((new Date(end_date+'T00:00') - new Date(start_date+'T00:00')) / 86400000)
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
 }
 
 // ── Formulaire ────────────────────────────────────────────────────────────────
 function BudgetForm({ categories, initial, defaultType, onSave, onCancel }) {
   const today = new Date().toISOString().split('T')[0]
+<<<<<<< HEAD
   const [form, setForm] = useState(() => initial ? {
     budget_type:      initial.budget_type ?? defaultType ?? 'budget',
     name:             initial.name ?? '',
@@ -122,18 +177,65 @@ function BudgetForm({ categories, initial, defaultType, onSave, onCancel }) {
     if (!isGlobalSaving && !form.limit_amount) { setErr(isSaving ? 'Entrez un objectif' : 'Entrez une limite'); return }
     if (isGlobalSaving && !form.savings_pct && !form.limit_amount) { setErr('Entrez un % ou un montant fixe'); return }
 
+=======
+  const [form, setForm] = useState(() => {
+    if (initial) return {
+      budget_type:  initial.budget_type ?? defaultType ?? 'budget',
+      name:         initial.name ?? '',
+      category_id:  String(initial.category_id ?? initial.category?.id ?? ''),
+      limit_amount: String(initial.limit_amount ?? initial.target_amount ?? ''),
+      start_date:   initial.start_date ?? today,
+      end_date:     initial.end_date ?? '',
+      notes:        initial.notes ?? '',
+    }
+    return { budget_type: defaultType ?? 'budget', name:'', category_id:'', limit_amount:'', start_date:today, end_date:'', notes:'' }
+  })
+  const [loading, setLoading] = useState(false)
+  const [err, setErr] = useState('')
+  const set = (k,v) => setForm(f => ({...f,[k]:v}))
+  const isSaving = form.budget_type === 'saving'
+
+  const applyShortcut = days => {
+    const s = new Date(); s.setHours(0,0,0,0)
+    const e = new Date(s); e.setDate(e.getDate()+days-1)
+    setForm(f => ({ ...f, start_date:s.toISOString().split('T')[0], end_date:e.toISOString().split('T')[0] }))
+  }
+  const applyThisMonth = () => {
+    const now = new Date()
+    const s = new Date(now.getFullYear(), now.getMonth(), 1)
+    const e = new Date(now.getFullYear(), now.getMonth()+1, 0)
+    setForm(f => ({ ...f, start_date:s.toISOString().split('T')[0], end_date:e.toISOString().split('T')[0] }))
+  }
+
+  const duration    = form.start_date && form.end_date && form.end_date > form.start_date ? getDuration(form.start_date, form.end_date) : null
+  const dailyAmount = duration && form.limit_amount ? parseFloat(form.limit_amount) / duration : null
+
+  const handleSave = async () => {
+    if (!form.name)         { setErr('Donnez un nom'); return }
+    if (!form.category_id)  { setErr('Sélectionnez une catégorie'); return }
+    if (!form.limit_amount) { setErr(isSaving ? 'Entrez un objectif' : 'Entrez une limite'); return }
+    if (!form.start_date)   { setErr('Date de début requise'); return }
+    if (!form.end_date)     { setErr('Date de fin requise'); return }
+    if (form.end_date <= form.start_date) { setErr('La fin doit être après le début'); return }
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
     setErr(''); setLoading(true)
     try {
       await onSave({
         ...form,
+<<<<<<< HEAD
         limit_amount:  isSaving ? 0 : (isGlobalSaving && !form.limit_amount ? 0 : parseFloat(form.limit_amount||0)),
         target_amount: (isSaving || isGlobalSaving) ? parseFloat(form.limit_amount||0) : 0,
         savings_pct:   isGlobalSaving && form.savings_pct ? parseFloat(form.savings_pct) : null,
+=======
+        limit_amount:  isSaving ? 0                        : parseFloat(form.limit_amount),
+        target_amount: isSaving ? parseFloat(form.limit_amount) : 0,
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
       })
     } catch(e) { setErr(e.message) }
     finally { setLoading(false) }
   }
 
+<<<<<<< HEAD
   return (
     <Portal>
       <div style={OVERLAY} onClick={onCancel}>
@@ -303,12 +405,130 @@ function BudgetForm({ categories, initial, defaultType, onSave, onCancel }) {
         </div>
       </div>
     </Portal>
+=======
+  const accentColor = isSaving ? '#22d3a0' : '#7c6cfc'
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.75)', backdropFilter:'blur(10px)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }} onClick={onCancel}>
+      <div className="modal-in" onClick={e=>e.stopPropagation()} style={{ background:'var(--surface)', border:`1px solid ${accentColor}22`, borderRadius:22, padding:32, width:520, maxWidth:'96vw', maxHeight:'94vh', overflowY:'auto', boxShadow:`0 24px 80px rgba(0,0,0,.65), 0 0 0 1px ${accentColor}10 inset` }}>
+
+        {/* Top line */}
+        <div style={{ position:'absolute', top:0, left:'15%', right:'15%', height:2, borderRadius:1, background:`linear-gradient(90deg,transparent,${accentColor}80,transparent)` }}/>
+
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:22 }}>
+          <div>
+            <div style={{ fontSize:17, fontWeight:700, color:'var(--text)' }}>{initial?.id ? 'Modifier' : 'Nouveau'}</div>
+            <div style={{ fontSize:13, color:'var(--text2)', marginTop:2 }}>Définissez votre enveloppe</div>
+          </div>
+          <button className="btn btn-ghost btn-sm" style={{ padding:'6px' }} onClick={onCancel}>✕</button>
+        </div>
+
+        {/* Toggle budget / épargne */}
+        <div style={{ display:'flex', background:'var(--surface2)', borderRadius:12, border:'1px solid var(--border)', padding:4, marginBottom:22, gap:4 }}>
+          {[
+            { v:'budget', label:'💸 Budget dépense', desc:'Limite à ne pas dépasser' },
+            { v:'saving', label:'🏦 Épargne',        desc:'Objectif à atteindre'     },
+          ].map(opt => (
+            <button key={opt.v} onClick={()=>set('budget_type', opt.v)} style={{
+              flex:1, padding:'10px 12px', border:'none', borderRadius:9, cursor:'pointer',
+              fontFamily:'inherit', transition:'all .2s',
+              background: form.budget_type===opt.v
+                ? (opt.v==='saving' ? 'linear-gradient(135deg,rgba(34,211,160,.2),rgba(34,211,160,.1))' : 'linear-gradient(135deg,rgba(124,108,252,.2),rgba(124,108,252,.1))')
+                : 'transparent',
+              border: form.budget_type===opt.v ? `1px solid ${opt.v==='saving'?'rgba(34,211,160,.3)':'rgba(124,108,252,.3)'}` : '1px solid transparent',
+              textAlign:'left',
+            }}>
+              <div style={{ fontSize:13, fontWeight:700, color: form.budget_type===opt.v ? (opt.v==='saving'?'#22d3a0':'#a78bfa') : 'var(--text2)' }}>{opt.label}</div>
+              <div style={{ fontSize:11, color:'var(--text3)', marginTop:2 }}>{opt.desc}</div>
+            </button>
+          ))}
+        </div>
+
+        {err && <div className="error-box" style={{ marginBottom:16 }}>{err}</div>}
+
+        <div style={{ marginBottom:14 }}>
+          <label className="input-label">Nom *</label>
+          <input className="input" placeholder={isSaving ? 'Ex : Fonds d\'urgence, Vacances été…' : 'Ex : Courses mensuelles, Transport…'} value={form.name} onChange={e=>set('name',e.target.value)}/>
+        </div>
+
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+          <div>
+            <label className="input-label">Catégorie *</label>
+            <select className="input" value={form.category_id} onChange={e=>set('category_id',e.target.value)}>
+              <option value="">Sélectionner…</option>
+              {categories.map(c=><option key={c.id} value={String(c.id)}>{c.icon?c.icon+' ':''}{c.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="input-label">{isSaving ? 'Objectif (FCFA) *' : 'Limite (FCFA) *'}</label>
+            <input className="input" type="number" min="0" step="1" placeholder="ex. 50 000" value={form.limit_amount} onChange={e=>set('limit_amount',e.target.value)}/>
+          </div>
+        </div>
+
+        {/* Raccourcis */}
+        <div style={{ marginBottom:12 }}>
+          <label className="input-label">Période — raccourcis</label>
+          <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+            {[
+              { label:'Ce mois',      fn: applyThisMonth },
+              { label:'7 jours',      fn: ()=>applyShortcut(7)  },
+              { label:'30 jours',     fn: ()=>applyShortcut(30) },
+              { label:'90 jours',     fn: ()=>applyShortcut(90) },
+              { label:'6 mois',       fn: ()=>applyShortcut(182) },
+              { label:'Cette année',  fn: ()=>{ const y=new Date().getFullYear(); setForm(f=>({...f,start_date:`${y}-01-01`,end_date:`${y}-12-31`})) }},
+            ].map(r=>(
+              <button key={r.label} onClick={r.fn} className="btn btn-ghost btn-sm" style={{ fontSize:11 }}>{r.label}</button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:12 }}>
+          <div>
+            <label className="input-label">Début *</label>
+            <input className="input" type="date" value={form.start_date} onChange={e=>set('start_date',e.target.value)}/>
+          </div>
+          <div>
+            <label className="input-label">Fin *</label>
+            <input className="input" type="date" value={form.end_date} onChange={e=>set('end_date',e.target.value)}/>
+          </div>
+        </div>
+
+        {duration && (
+          <div style={{ marginBottom:14, padding:'10px 14px', background:'var(--surface2)', borderRadius:10, border:`1px solid ${accentColor}20`, fontSize:12, color:'var(--text2)', display:'flex', gap:16, flexWrap:'wrap' }}>
+            <span>📅 <strong style={{color:'var(--text)'}}>{duration}</strong> jours</span>
+            {dailyAmount && <span>{isSaving?'💰 À épargner':'💸 Autorisé'} <strong style={{color:accentColor}}>{fmt(dailyAmount)}</strong>/jour</span>}
+            {dailyAmount && <span>par semaine <strong style={{color:accentColor}}>{fmt(dailyAmount*7)}</strong></span>}
+          </div>
+        )}
+
+        <div style={{ marginBottom:24 }}>
+          <label className="input-label">Notes</label>
+          <textarea className="input" rows={2} style={{ resize:'none' }} placeholder={isSaving?'Ex : pour les vacances, retrait mensuel du salaire…':'Ex : inclut restaurants, marchés…'} value={form.notes} onChange={e=>set('notes',e.target.value)}/>
+        </div>
+
+        <div style={{ display:'flex', gap:10 }}>
+          <button className="btn btn-ghost" style={{ flex:1 }} onClick={onCancel}>Annuler</button>
+          <button disabled={loading} onClick={handleSave} style={{
+            flex:2, padding:'11px', border:'none', borderRadius:10, fontFamily:'inherit',
+            fontWeight:700, fontSize:14, cursor:loading?'not-allowed':'pointer',
+            background: isSaving ? 'linear-gradient(135deg,#22d3a0,#059669)' : 'linear-gradient(135deg,#7c6cfc,#5b4de8)',
+            color:'white', display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+            boxShadow: isSaving ? '0 4px 16px rgba(34,211,160,.3)' : '0 4px 16px rgba(124,108,252,.3)',
+            opacity: loading ? .6 : 1, transition:'all .2s',
+          }}>
+            {loading ? <><span className="spinner"/> Enregistrement…</> : (initial?.id ? 'Mettre à jour' : (isSaving ? '🏦 Créer l\'épargne' : '💸 Créer le budget'))}
+          </button>
+        </div>
+      </div>
+    </div>
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
   )
 }
 
 // ── Confirm delete ────────────────────────────────────────────────────────────
 function ConfirmModal({ onConfirm, onCancel }) {
   return (
+<<<<<<< HEAD
     <Portal>
       <div style={OVERLAY} onClick={onCancel}>
         <div className="modal-in" onClick={e=>e.stopPropagation()} style={{
@@ -326,11 +546,25 @@ function ConfirmModal({ onConfirm, onCancel }) {
         </div>
       </div>
     </Portal>
+=======
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.75)', backdropFilter:'blur(8px)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }} onClick={onCancel}>
+      <div className="modal-in" onClick={e=>e.stopPropagation()} style={{ background:'var(--surface)', border:'1px solid var(--border2)', borderRadius:20, padding:32, width:380, maxWidth:'92vw', boxShadow:'0 20px 80px rgba(0,0,0,.6)' }}>
+        <div style={{ width:52, height:52, borderRadius:14, background:'rgba(245,71,106,.1)', border:'1px solid rgba(245,71,106,.2)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:18, fontSize:24 }}>🗑️</div>
+        <h3 style={{ fontSize:17, fontWeight:700, color:'var(--text)', marginBottom:8 }}>Supprimer ?</h3>
+        <p style={{ fontSize:14, color:'var(--text2)', marginBottom:24, lineHeight:1.6 }}>Cette action est irréversible.</p>
+        <div style={{ display:'flex', gap:10 }}>
+          <button className="btn btn-ghost" style={{ flex:1 }} onClick={onCancel}>Annuler</button>
+          <button className="btn btn-danger" style={{ flex:1 }} onClick={onConfirm}>Supprimer</button>
+        </div>
+      </div>
+    </div>
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
   )
 }
 
 // ── Carte budget dépense ──────────────────────────────────────────────────────
 function BudgetCard({ b, categories, onEdit, onDelete, idx }) {
+<<<<<<< HEAD
   const status = b._status
   const limit  = b.limit_amount ?? 0
   const spent  = b.spent_amount ?? 0
@@ -348,6 +582,25 @@ function BudgetCard({ b, categories, onEdit, onDelete, idx }) {
   const projected    = dailyRate&&dur ? dailyRate*dur : null
   const willExceed   = projected && projected > limit
   const dailyAllowed = dl&&dl>0 ? Math.max(0,limit-spent)/dl : null
+=======
+  const status   = b._status
+  const limit    = b.limit_amount ?? 0
+  const spent    = b.spent_amount ?? 0
+  const pct      = limit > 0 ? Math.min((spent/limit)*100,100) : 0
+  const tPct     = getTimePct(b.start_date, b.end_date)
+  const dl       = getDaysLeft(b.end_date)
+  const duration = getDuration(b.start_date, b.end_date)
+  const catObj   = b.category && typeof b.category==='object' ? b.category : categories.find(c=>String(c.id)===String(b.category_id))
+  const catName  = catObj?.name  ?? b.name ?? `Budget #${b.id}`
+  const catColor = catObj?.color ?? '#7c6cfc'
+  const catIcon  = catObj?.icon  ?? catName[0]?.toUpperCase()
+  const elapsed  = tPct!==null&&duration ? Math.max(1,Math.round((tPct/100)*duration)) : null
+  const dailyRate= elapsed&&elapsed>0 ? spent/elapsed : null
+  const projected= dailyRate&&duration ? dailyRate*duration : null
+  const willExceed = projected && projected > limit
+  const daysRemaining = dl!==null&&dl>0 ? dl : null
+  const dailyAllowed  = daysRemaining ? Math.max(0,limit-spent)/daysRemaining : null
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
 
   return (
     <div className="card slide-right" style={{ padding:22, animationDelay:`${idx*.04}s`, borderTop:`2px solid ${status.color}`, display:'flex', flexDirection:'column' }}>
@@ -355,9 +608,15 @@ function BudgetCard({ b, categories, onEdit, onDelete, idx }) {
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
           <div style={{ width:42, height:42, borderRadius:12, background:catColor+'20', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0, border:`1px solid ${catColor}30` }}>{catIcon}</div>
           <div>
+<<<<<<< HEAD
             <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>{b.name||catName}</div>
             <div style={{ fontSize:11, color:'var(--text3)', marginTop:2, fontFamily:'JetBrains Mono,monospace' }}>
               {b.start_date ? `${fmtD(b.start_date)} → ${fmtD(b.end_date)}` : '—'}{dur ? ` · ${dur}j` : ''}
+=======
+            <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>{b.name || catName}</div>
+            <div style={{ fontSize:11, color:'var(--text3)', marginTop:2, fontFamily:'JetBrains Mono,monospace' }}>
+              {b.start_date ? `${fmtD(b.start_date)} → ${fmtD(b.end_date)}` : 'Période non définie'}{duration ? ` · ${duration}j` : ''}
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
             </div>
           </div>
         </div>
@@ -372,15 +631,27 @@ function BudgetCard({ b, categories, onEdit, onDelete, idx }) {
           </button>
         </div>
       </div>
+<<<<<<< HEAD
+=======
+
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
       <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8, fontSize:13 }}>
         <span style={{ color:'var(--text2)' }}>Dépensé <span style={{ fontWeight:700, color:spent>limit?'#f5476a':'var(--text)', fontFamily:'JetBrains Mono,monospace' }}>{fmt(spent)}</span></span>
         <span style={{ color:'var(--text2)' }}>Limite <span style={{ fontWeight:700, color:'var(--text)', fontFamily:'JetBrains Mono,monospace' }}>{fmt(limit)}</span></span>
       </div>
+<<<<<<< HEAD
+=======
+
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
       <div style={{ marginBottom:4 }}>
         <div className="progress" style={{ height:8, borderRadius:100 }}>
           <div className="progress-fill" style={{ width:`${pct}%`, height:'100%', background:spent>limit?'#f5476a':pct>80?'#f59e0b':`linear-gradient(90deg,${catColor},${catColor}88)` }}/>
         </div>
       </div>
+<<<<<<< HEAD
+=======
+
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
       {tPct!==null && (
         <div style={{ marginBottom:8 }}>
           <div className="progress" style={{ height:3 }}>
@@ -391,6 +662,7 @@ function BudgetCard({ b, categories, onEdit, onDelete, idx }) {
           </div>
         </div>
       )}
+<<<<<<< HEAD
       <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, marginBottom:4 }}>
         <span style={{ color:'var(--text3)' }}>{spent>limit ? <span style={{color:'#f5476a'}}>⚠ +{fmt(spent-limit)}</span> : <span>{fmt(Math.max(0,limit-spent))} restants</span>}</span>
         <span style={{ fontWeight:700, color:spent>limit?'#f5476a':catColor }}>{pct.toFixed(0)}%</span>
@@ -398,6 +670,19 @@ function BudgetCard({ b, categories, onEdit, onDelete, idx }) {
       {(dl||willExceed||status.key==='saved') && (
         <div style={{ borderTop:'1px solid var(--border)', paddingTop:8, marginTop:4, display:'flex', flexDirection:'column', gap:4 }}>
           {dl&&dl>0&&status.key!=='saved' && (
+=======
+
+      <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, marginBottom:(dl!==null||willExceed)?6:0 }}>
+        <span style={{ color:'var(--text3)' }}>
+          {spent>limit ? <span style={{color:'#f5476a'}}>⚠ +{fmt(spent-limit)}</span> : <span>{fmt(Math.max(0,limit-spent))} restants</span>}
+        </span>
+        <span style={{ fontWeight:700, color:spent>limit?'#f5476a':catColor }}>{pct.toFixed(0)}%</span>
+      </div>
+
+      {(dl!==null||willExceed||status.key==='saved') && (
+        <div style={{ borderTop:'1px solid var(--border)', paddingTop:8, marginTop:4, display:'flex', flexDirection:'column', gap:4 }}>
+          {dl!==null&&dl>0&&status.key!=='saved' && (
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
             <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'var(--text3)' }}>
               <span>⏱ <strong style={{color:'var(--text)'}}>{dl}</strong>j restants</span>
               {dailyAllowed!==null && <span>Max <strong style={{color:dailyAllowed<0?'#f5476a':'var(--text)'}}>{fmt(dailyAllowed)}</strong>/j</span>}
@@ -413,6 +698,7 @@ function BudgetCard({ b, categories, onEdit, onDelete, idx }) {
   )
 }
 
+<<<<<<< HEAD
 // ── Carte épargne par catégorie ───────────────────────────────────────────────
 function SavingCard({ b, categories, onEdit, onDelete, idx }) {
   const status  = b._status
@@ -431,16 +717,48 @@ function SavingCard({ b, categories, onEdit, onDelete, idx }) {
   const remaining   = Math.max(0, target-saved)
   const dailyNeeded = dl&&dl>0 ? remaining/dl : null
   const milestone   = pct>=100?'🏆':pct>=75?'🎯':pct>=50?'💪':pct>=25?'🌱':'🚀'
+=======
+// ── Carte épargne ─────────────────────────────────────────────────────────────
+function SavingCard({ b, categories, onEdit, onDelete, idx }) {
+  const status   = b._status
+  const target   = b.target_amount ?? b.limit_amount ?? 0
+  const saved    = b.saved_amount  ?? b.spent_amount ?? 0
+  const pct      = target > 0 ? Math.min((saved/target)*100,100) : 0
+  const tPct     = getTimePct(b.start_date, b.end_date)
+  const dl       = getDaysLeft(b.end_date)
+  const duration = getDuration(b.start_date, b.end_date)
+  const catObj   = b.category && typeof b.category==='object' ? b.category : categories.find(c=>String(c.id)===String(b.category_id))
+  const catName  = catObj?.name  ?? b.name ?? `Épargne #${b.id}`
+  const elapsed  = tPct!==null&&duration ? Math.max(1,Math.round((tPct/100)*duration)) : null
+  const dailySaved  = elapsed&&elapsed>0 ? saved/elapsed : null
+  const projected   = dailySaved&&duration ? dailySaved*duration : null
+  const willReach   = projected && projected >= target
+  const remaining   = Math.max(0, target - saved)
+  const dailyNeeded = dl!==null&&dl>0 ? remaining/dl : null
+
+  // Milestone icons
+  const milestone = pct>=100?'🏆':pct>=75?'🎯':pct>=50?'💪':pct>=25?'🌱':'🚀'
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
 
   return (
     <div className="card slide-right" style={{ padding:22, animationDelay:`${idx*.04}s`, borderTop:'2px solid #22d3a0', display:'flex', flexDirection:'column', background:pct>=100?'rgba(34,211,160,.03)':'var(--surface)' }}>
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:14 }}>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+<<<<<<< HEAD
           <div style={{ width:42, height:42, borderRadius:12, background:'rgba(34,211,160,.12)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0, border:'1px solid rgba(34,211,160,.2)' }}>{milestone}</div>
           <div>
             <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>{b.name||catName}</div>
             <div style={{ fontSize:11, color:'var(--text3)', marginTop:2, fontFamily:'JetBrains Mono,monospace' }}>
               {b.start_date ? `${fmtD(b.start_date)} → ${fmtD(b.end_date)}` : 'Période libre'}{dur?` · ${dur}j`:''}
+=======
+          <div style={{ width:42, height:42, borderRadius:12, background:'rgba(34,211,160,.12)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0, border:'1px solid rgba(34,211,160,.2)' }}>
+            {milestone}
+          </div>
+          <div>
+            <div style={{ fontSize:14, fontWeight:700, color:'var(--text)' }}>{b.name || catName}</div>
+            <div style={{ fontSize:11, color:'var(--text3)', marginTop:2, fontFamily:'JetBrains Mono,monospace' }}>
+              {b.start_date ? `${fmtD(b.start_date)} → ${fmtD(b.end_date)}` : 'Période libre'}{duration?` · ${duration}j`:''}
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
             </div>
           </div>
         </div>
@@ -455,15 +773,53 @@ function SavingCard({ b, categories, onEdit, onDelete, idx }) {
           </button>
         </div>
       </div>
+<<<<<<< HEAD
+=======
+
+      {/* Objectif et progression */}
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
       <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8, fontSize:13 }}>
         <span style={{ color:'var(--text2)' }}>Épargné <span style={{ fontWeight:700, color:'#22d3a0', fontFamily:'JetBrains Mono,monospace' }}>{fmt(saved)}</span></span>
         <span style={{ color:'var(--text2)' }}>Objectif <span style={{ fontWeight:700, color:'var(--text)', fontFamily:'JetBrains Mono,monospace' }}>{fmt(target)}</span></span>
       </div>
+<<<<<<< HEAD
       <div style={{ marginBottom:4 }}>
         <div className="progress" style={{ height:10, borderRadius:100 }}>
           <div className="progress-fill" style={{ width:`${pct}%`, height:'100%', background:pct>=100?'linear-gradient(90deg,#22d3a0,#a78bfa)':'linear-gradient(90deg,#22d3a0,#34d399)', boxShadow:pct>=100?'0 0 12px rgba(34,211,160,.4)':'none', transition:'width .8s cubic-bezier(.34,1.56,.64,1)' }}/>
         </div>
       </div>
+=======
+
+      {/* Barre épargne avec dégradé vert */}
+      <div style={{ marginBottom: 4 }}>
+        <div className="progress" style={{ height: 10, borderRadius: 100 }}>
+          <div
+            className="progress-fill"
+            style={{
+              width: pct <= 0 ? '0%' : `${pct}%`,
+              height: '100%',
+
+              background:
+                pct < 0
+                  ? 'linear-gradient(90deg,#f5476a,#ef4444)' // rouge
+                  : pct >= 100
+                    ? 'linear-gradient(90deg,#22d3a0,#a78bfa)'
+                    : 'linear-gradient(90deg,#22d3a0,#34d399)',
+
+              boxShadow:
+                pct < 0
+                  ? '0 0 12px rgba(245,71,106,.4)'
+                  : pct >= 100
+                    ? '0 0 12px rgba(34,211,160,.4)'
+                    : 'none',
+
+              transition: 'width .8s cubic-bezier(.34,1.56,.64,1)',
+            }}
+          />
+        </div>
+      </div>
+
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
       {tPct!==null && (
         <div style={{ marginBottom:8 }}>
           <div className="progress" style={{ height:3 }}>
@@ -474,12 +830,25 @@ function SavingCard({ b, categories, onEdit, onDelete, idx }) {
           </div>
         </div>
       )}
+<<<<<<< HEAD
       <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, marginBottom:6 }}>
         <span style={{ color:'var(--text3)' }}>{pct>=100 ? <span style={{color:'#a78bfa',fontWeight:600}}>🏆 Objectif atteint !</span> : <span>{fmt(remaining)} restants</span>}</span>
         <span style={{ fontWeight:700, color:'#22d3a0' }}>{pct.toFixed(0)}%</span>
       </div>
       <div style={{ borderTop:'1px solid var(--border)', paddingTop:8, marginTop:2, display:'flex', flexDirection:'column', gap:4 }}>
         {dl&&dl>0 && (
+=======
+
+      <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, marginBottom:6 }}>
+        <span style={{ color:'var(--text3)' }}>
+          {pct>=100 ? <span style={{color:'#a78bfa',fontWeight:600}}>🏆 Objectif atteint !</span> : <span>{fmt(remaining)} restants à épargner</span>}
+        </span>
+        <span style={{ fontWeight:700, color:'#22d3a0' }}>{pct.toFixed(0)}%</span>
+      </div>
+
+      <div style={{ borderTop:'1px solid var(--border)', paddingTop:8, marginTop:2, display:'flex', flexDirection:'column', gap:4 }}>
+        {dl!==null&&dl>0 && (
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
           <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'var(--text3)' }}>
             <span>⏱ <strong style={{color:'var(--text)'}}>{dl}</strong>j restants</span>
             {dailyNeeded!==null&&pct<100 && <span>À épargner <strong style={{color:'#22d3a0'}}>{fmt(dailyNeeded)}</strong>/j</span>}
@@ -487,6 +856,7 @@ function SavingCard({ b, categories, onEdit, onDelete, idx }) {
         )}
         {dailySaved&&status.key==='active' && (
           <div style={{ fontSize:11, color:'var(--text3)' }}>
+<<<<<<< HEAD
             Rythme : <strong style={{color:'#22d3a0'}}>{fmt(dailySaved)}</strong>/j
             {projected && <span style={{ color:willReach?'#22d3a0':'#f59e0b', marginLeft:8 }}>{willReach ? `→ ${fmt(projected)}` : `→ Seulement ${fmt(projected)}`}</span>}
           </div>
@@ -569,6 +939,14 @@ function GlobalSavingCard({ b, onEdit, onDelete, idx }) {
           ⏱ <strong style={{color:'var(--text)'}}>{dl}</strong>j restants dans la période
         </div>
       )}
+=======
+            Rythme actuel : <strong style={{color:'#22d3a0'}}>{fmt(dailySaved)}</strong>/j
+            {projected && <span style={{ color: willReach?'#22d3a0':'#f59e0b', marginLeft:8 }}>{willReach ? `→ Atteindrez ${fmt(projected)}` : `→ Seulement ${fmt(projected)} projeté`}</span>}
+          </div>
+        )}
+      </div>
+
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
       {b.notes && <div style={{ marginTop:8, fontSize:11, color:'var(--text3)', fontStyle:'italic', borderTop:'1px solid var(--border)', paddingTop:8 }}>{b.notes}</div>}
     </div>
   )
@@ -587,18 +965,34 @@ export default function Budgets() {
   const [editItem,      setEditItem]      = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [defaultType,   setDefaultType]   = useState('budget')
+<<<<<<< HEAD
   const [mainTab,       setMainTab]       = useState('budget')
   const [subTab,        setSubTab]        = useState('active')
   const [viewMode,      setViewMode]      = useState('grid')
   const [search,        setSearch]        = useState('')
   const [filterCat,     setFilterCat]     = useState('')
   const [sortBy,        setSortBy]        = useState('status')
+=======
+
+  // Tabs principaux
+  const [mainTab, setMainTab] = useState('budget')  // 'budget' | 'saving'
+  // Sous-tabs de navigation
+  const [subTab,  setSubTab]  = useState('active')  // 'all' | 'active' | 'upcoming' | 'exceeded' | 'done'
+  const [viewMode, setViewMode] = useState('grid')
+  const [search,   setSearch]  = useState('')
+  const [filterCat,setFilterCat]= useState('')
+  const [sortBy,   setSortBy]  = useState('status')
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
 
   const load = useCallback(async () => {
     if (!user?.id) return
     setLoading(true); setErr(null)
     try {
+<<<<<<< HEAD
       const [bRes, cRes] = await Promise.all([budgetsAPI.getAll(user.id), categoriesAPI.getAll(user.id)])
+=======
+      const [bRes, cRes] = await Promise.all([budgetsAPI.getAll(user.id), categoriesAPI.getAll()])
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
       setBudgets(Array.isArray(bRes) ? bRes : (bRes?.data ?? bRes?.budgets ?? []))
       setCategories(Array.isArray(cRes) ? cRes : (cRes?.data ?? cRes?.categories ?? []))
     } catch(e) { setErr(e.message) }
@@ -614,7 +1008,11 @@ export default function Budgets() {
         success('Mis à jour')
       } else {
         await budgetsAPI.create({ user_id:user.id, ...data })
+<<<<<<< HEAD
         success(data.budget_type==='saving_global' ? '🌍 Épargne globale créée !' : data.budget_type==='saving' ? '🏦 Épargne créée !' : '💸 Budget créé !')
+=======
+        success(data.budget_type==='saving' ? '🏦 Épargne créée !' : '💸 Budget créé !')
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
       }
       setShowForm(false); setEditItem(null); load()
     } catch(e) { toastErr(e.message) }
@@ -628,6 +1026,7 @@ export default function Budgets() {
     } catch(e) { toastErr(e.message) }
   }
 
+<<<<<<< HEAD
   const openNew  = type => { setDefaultType(type); setEditItem(null); setShowForm(true) }
   const openEdit = item => { setEditItem(item); setDefaultType(item.budget_type ?? 'budget'); setShowForm(true) }
 
@@ -640,6 +1039,21 @@ export default function Budgets() {
   const filtered = useMemo(() => {
     const STATUS_ORDER = { over:0, warning:1, active:2, future:3, completed:4, saved:5, missed:6, idle:7 }
     let res = currentList.filter(b=>matchesTab(b,subTab))
+=======
+  const openNew = type => { setDefaultType(type); setEditItem(null); setShowForm(true) }
+  const openEdit = item => { setEditItem(item); setDefaultType(item.budget_type ?? 'budget'); setShowForm(true) }
+
+  // Sépare budgets et épargnes
+  const allBudgets = useMemo(() => budgets.filter(b => (b.budget_type ?? 'budget') === 'budget').map(b => ({ ...b, _status: getStatus(b) })), [budgets])
+  const allSavings = useMemo(() => budgets.filter(b => b.budget_type === 'saving').map(b => ({ ...b, _status: getStatus(b) })), [budgets])
+  const currentList = mainTab === 'budget' ? allBudgets : allSavings
+
+  // Filtrage + tri
+  const filtered = useMemo(() => {
+    const STATUS_ORDER = { over:0, warning:1, active:2, future:3, completed:4, saved:5, missed:6, idle:7 }
+    let res = currentList.filter(b => matchesTab(b, subTab))
+
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
     if (search) {
       const q = search.toLowerCase()
       res = res.filter(b => {
@@ -647,17 +1061,27 @@ export default function Budgets() {
         return (b.name??'').toLowerCase().includes(q) || cat?.name?.toLowerCase().includes(q) || (b.notes??'').toLowerCase().includes(q)
       })
     }
+<<<<<<< HEAD
     if (filterCat) res = res.filter(b=>String(b.category_id)===filterCat||String(b.category?.id)===filterCat)
     switch(sortBy) {
       case 'status':     res.sort((a,b)=>(STATUS_ORDER[a._status.key]??9)-(STATUS_ORDER[b._status.key]??9)); break
       case 'end_date':   res.sort((a,b)=>(a.end_date??'').localeCompare(b.end_date??'')); break
       case 'pct_desc':   res.sort((a,b)=>{const pa=(a.limit_amount??0)>0?(a.spent_amount??0)/(a.limit_amount??1):0;const pb=(b.limit_amount??0)>0?(b.spent_amount??0)/(b.limit_amount??1):0;return pb-pa}); break
+=======
+    if (filterCat) res = res.filter(b => String(b.category_id)===filterCat || String(b.category?.id)===filterCat)
+
+    switch(sortBy) {
+      case 'status':     res.sort((a,b)=>(STATUS_ORDER[a._status.key]??9)-(STATUS_ORDER[b._status.key]??9)); break
+      case 'end_date':   res.sort((a,b)=>(a.end_date??'').localeCompare(b.end_date??'')); break
+      case 'pct_desc':   res.sort((a,b)=>{ const pa=(a.limit_amount??0)>0?(a.spent_amount??0)/(a.limit_amount??1):0; const pb=(b.limit_amount??0)>0?(b.spent_amount??0)/(b.limit_amount??1):0; return pb-pa }); break
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
       case 'amount_desc':res.sort((a,b)=>(b.limit_amount??b.target_amount??0)-(a.limit_amount??a.target_amount??0)); break
       default: break
     }
     return res
   }, [currentList, subTab, search, filterCat, sortBy, categories])
 
+<<<<<<< HEAD
   const kpis = useMemo(() => {
     const list = currentList
     const isSavingType = mainTab !== 'budget'
@@ -692,22 +1116,83 @@ export default function Budgets() {
     { key:'saving',        label:'🏦 Épargnes',        count:allSavings.length,      color:'#22d3a0' },
     { key:'saving_global', label:'🌍 Épargne globale', count:allGlobalSaving.length, color:'#a78bfa' },
   ]
+=======
+  // KPIs
+  const kpis = useMemo(() => {
+    const list = currentList
+    const isSaving = mainTab === 'saving'
+
+    const total = list.reduce((s, b) => 
+      s + (isSaving ? (b.target_amount ?? 0) : (b.limit_amount ?? 0)), 
+    0)
+
+    const spent = list.reduce((s, b) => 
+      s + (b.spent_amount ?? 0), 
+    0)
+
+    return {
+      total,
+      spent,
+      remaining: isSaving 
+        ? total - spent   // 🔥 objectif - épargné
+        : total - spent,  // (inchangé mais logique claire)
+
+      over: list.filter(b => b._status.key === 'over').length,
+      active: list.filter(b => ['active','warning'].includes(b._status.key)).length,
+      upcoming: list.filter(b => b._status.key === 'future').length,
+      done: list.filter(b => ['saved','completed','missed'].includes(b._status.key)).length,
+    }
+  }, [currentList, mainTab])
+
+  // Compteurs pour sous-tabs
+  const tabCounts = useMemo(() => ({
+    all:       currentList.length,
+    active:    currentList.filter(b=>matchesTab(b,'active')).length,
+    upcoming:  currentList.filter(b=>matchesTab(b,'upcoming')).length,
+    exceeded:  currentList.filter(b=>matchesTab(b,'exceeded')).length,
+    done:      currentList.filter(b=>matchesTab(b,'done')).length,
+  }), [currentList])
+
+  const SUB_TABS = mainTab === 'budget'
+    ? [
+        { key:'all',      label:'Tous'          },
+        { key:'active',   label:'En cours'      },
+        { key:'upcoming', label:'À venir'        },
+        { key:'exceeded', label:'Dépassés'       },
+        { key:'done',     label:'Terminés'       },
+      ]
+    : [
+        { key:'all',      label:'Tous'           },
+        { key:'active',   label:'En cours'       },
+        { key:'upcoming', label:'À venir'        },
+        { key:'done',     label:'Terminés'       },
+      ]
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
 
   return (
     <div className="fade-up" style={{ padding:24 }}>
 
+<<<<<<< HEAD
       {/* Header */}
+=======
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:20, flexWrap:'wrap', gap:12 }}>
         <div>
           <div className="page-title">Budgets & Épargne</div>
           <div className="page-subtitle">Gérez vos enveloppes et objectifs financiers</div>
         </div>
         <div style={{ display:'flex', gap:8 }}>
+<<<<<<< HEAD
+=======
+          {/* Toggle vue */}
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
           <div style={{ display:'flex', background:'var(--surface2)', borderRadius:9, border:'1px solid var(--border)', overflow:'hidden' }}>
             {[['grid','⊞'],['list','≡']].map(([v,ic])=>(
               <button key={v} onClick={()=>setViewMode(v)} style={{ padding:'7px 12px', border:'none', cursor:'pointer', fontFamily:'inherit', fontSize:14, background:viewMode===v?'rgba(124,108,252,.2)':'transparent', color:viewMode===v?'var(--accent2)':'var(--text3)', transition:'all .15s' }}>{ic}</button>
             ))}
           </div>
+<<<<<<< HEAD
           {[
             { type:'budget',        label:'Budget',          bg:'linear-gradient(135deg,#7c6cfc,#5b4de8)', shadow:'rgba(124,108,252,.3)' },
             { type:'saving',        label:'Épargne',         bg:'linear-gradient(135deg,#22d3a0,#059669)', shadow:'rgba(34,211,160,.3)'  },
@@ -735,10 +1220,45 @@ export default function Budgets() {
           }}>
             {tab.label}
             <span style={{ marginLeft:6, fontSize:10, fontWeight:600, padding:'1px 6px', borderRadius:100, background:'var(--surface2)', color:'var(--text3)' }}>{tab.count}</span>
+=======
+          <button onClick={()=>openNew('budget')} style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 14px', border:'none', borderRadius:10, background:'linear-gradient(135deg,#7c6cfc,#5b4de8)', color:'white', fontFamily:'inherit', fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:'0 2px 12px rgba(124,108,252,.3)', transition:'all .2s' }}
+            onMouseEnter={e=>{ e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.boxShadow='0 6px 20px rgba(124,108,252,.45)' }}
+            onMouseLeave={e=>{ e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='0 2px 12px rgba(124,108,252,.3)' }}>
+            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Budget
+          </button>
+          <button onClick={()=>openNew('saving')} style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 14px', border:'none', borderRadius:10, background:'linear-gradient(135deg,#22d3a0,#059669)', color:'white', fontFamily:'inherit', fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:'0 2px 12px rgba(34,211,160,.3)', transition:'all .2s' }}
+            onMouseEnter={e=>{ e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.boxShadow='0 6px 20px rgba(34,211,160,.45)' }}
+            onMouseLeave={e=>{ e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='0 2px 12px rgba(34,211,160,.3)' }}>
+            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Épargne
+          </button>
+        </div>
+      </div>
+
+      {/* ── Main tabs Budget / Épargne ──────────────────────────────────── */}
+      <div style={{ display:'flex', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:14, padding:4, marginBottom:20, gap:4 }}>
+        {[
+          { key:'budget', label:'💸 Budgets dépense', count:allBudgets.length },
+          { key:'saving', label:'🏦 Épargnes',         count:allSavings.length },
+        ].map(tab => (
+          <button key={tab.key} onClick={()=>{ setMainTab(tab.key); setSubTab('active') }} style={{
+            flex:1, padding:'11px 16px', border:'none', borderRadius:10, cursor:'pointer',
+            fontFamily:'inherit', fontSize:14, fontWeight:700, transition:'all .2s',
+            background: mainTab===tab.key
+              ? (tab.key==='saving' ? 'linear-gradient(135deg,rgba(34,211,160,.15),rgba(34,211,160,.07))' : 'linear-gradient(135deg,rgba(124,108,252,.15),rgba(124,108,252,.07))')
+              : 'transparent',
+            color: mainTab===tab.key ? (tab.key==='saving'?'#22d3a0':'#a78bfa') : 'var(--text2)',
+            border: mainTab===tab.key ? `1px solid ${tab.key==='saving'?'rgba(34,211,160,.25)':'rgba(124,108,252,.25)'}` : '1px solid transparent',
+          }}>
+            {tab.label}
+            <span style={{ marginLeft:8, fontSize:11, fontWeight:600, padding:'2px 7px', borderRadius:100, background:'var(--surface2)', color:'var(--text3)' }}>{tab.count}</span>
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
           </button>
         ))}
       </div>
 
+<<<<<<< HEAD
       {/* KPIs */}
       {!loading && currentList.length > 0 && (
         <div style={{ display:'flex', gap:10, marginBottom:20, flexWrap:'wrap' }}>
@@ -750,6 +1270,26 @@ export default function Budgets() {
             ...(mainTab==='budget' ? [{ label:'Dépassés', value:String(kpis.over), color:'#f5476a' }] : [{ label:'À venir', value:String(kpis.upcoming), color:'#38bdf8' }]),
             { label:'Terminés',   value:String(kpis.done),                 color:'var(--text3)' },
           ].map((s,i)=>(
+=======
+      {/* ── KPIs ───────────────────────────────────────────────────────── */}
+      {!loading && currentList.length > 0 && (
+        <div style={{ display:'flex', gap:10, marginBottom:20, flexWrap:'wrap' }}>
+          {(mainTab==='budget' ? [
+            { label:'Budget total',  value:fmt(kpis.total),            color:'var(--accent2)' },
+            { label:'Dépensé',       value:fmt(kpis.spent),            color:'#f5476a' },
+            { label:'Restant',       value:fmt(kpis.remaining),        color:kpis.remaining>=0?'#22d3a0':'#f5476a' },
+            { label:'En cours',      value:String(kpis.active),        color:'#22d3a0' },
+            { label:'Dépassés',      value:String(kpis.over),          color:'#f5476a' },
+            { label:'Terminés',      value:String(kpis.done),          color:'var(--text3)' },
+          ] : [
+            { label:'Total objectifs', value:fmt(kpis.total),          color:'#22d3a0' },
+            { label:'Total épargné',   value:fmt(kpis.spent),          color:'#22d3a0' },
+            { label:'Restant',         value:fmt(kpis.remaining),      color:'var(--text2)' },
+            { label:'En cours',        value:String(kpis.active),      color:'#22d3a0' },
+            { label:'À venir',         value:String(kpis.upcoming),    color:'#38bdf8' },
+            { label:'Terminés',        value:String(kpis.done),        color:'#a78bfa' },
+          ]).map((s,i) => (
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
             <div key={i} className="card" style={{ flex:'1 1 90px', padding:'12px 14px' }}>
               <div style={{ fontSize:10, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:4, whiteSpace:'nowrap' }}>{s.label}</div>
               <div style={{ fontSize:17, fontWeight:800, color:s.color, letterSpacing:'-.02em' }}>{s.value}</div>
@@ -758,6 +1298,7 @@ export default function Budgets() {
         </div>
       )}
 
+<<<<<<< HEAD
       {/* Sub-tabs + filtres */}
       <div style={{ display:'flex', gap:4, marginBottom:16, flexWrap:'wrap', borderBottom:'1px solid var(--border)', paddingBottom:12 }}>
         {SUB_TABS.map(tab=>{
@@ -777,11 +1318,40 @@ export default function Budgets() {
             </button>
           )
         })}
+=======
+      {/* ── Sub-tabs navigation ─────────────────────────────────────────── */}
+      <div style={{ display:'flex', gap:4, marginBottom:16, flexWrap:'wrap', borderBottom:'1px solid var(--border)', paddingBottom:12 }}>
+        {SUB_TABS.map(tab => {
+          const count = tabCounts[tab.key]
+          const active = subTab === tab.key
+          const accentColor = mainTab==='saving' ? '#22d3a0' : '#a78bfa'
+          return (
+            <button key={tab.key} onClick={()=>setSubTab(tab.key)} style={{
+              display:'flex', alignItems:'center', gap:6, padding:'6px 14px',
+              border:`1px solid ${active ? accentColor+'44' : 'var(--border)'}`,
+              borderRadius:100, cursor:'pointer', fontFamily:'inherit',
+              fontSize:12, fontWeight:active?700:500, transition:'all .15s',
+              background: active ? `${accentColor}15` : 'transparent',
+              color: active ? accentColor : 'var(--text2)',
+            }}>
+              {tab.label}
+              {count > 0 && (
+                <span style={{ fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:100, background: active?`${accentColor}25`:'var(--surface2)', color: active?accentColor:'var(--text3)' }}>
+                  {count}
+                </span>
+              )}
+            </button>
+          )
+        })}
+
+        {/* Filtres inline à droite */}
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
         <div style={{ marginLeft:'auto', display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
           <div style={{ position:'relative' }}>
             <svg width="12" height="12" fill="none" stroke="var(--text3)" strokeWidth="2" viewBox="0 0 24 24" style={{ position:'absolute', left:9, top:'50%', transform:'translateY(-50%)', pointerEvents:'none' }}>
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
+<<<<<<< HEAD
             <input className="input" placeholder="Rechercher…" value={search} onChange={e=>setSearch(e.target.value)} style={{ paddingLeft:28, width:150, fontSize:12 }}/>
           </div>
           {mainTab!=='saving_global' && (
@@ -797,19 +1367,39 @@ export default function Budgets() {
             <option value="amount_desc">Montant ↓</option>
           </select>
           {(search||filterCat) && <button className="btn btn-ghost btn-sm" onClick={()=>{setSearch('');setFilterCat('')}}>✕</button>}
+=======
+            <input className="input" placeholder="Rechercher…" value={search} onChange={e=>setSearch(e.target.value)} style={{ paddingLeft:28, width:160, fontSize:12 }}/>
+          </div>
+          <select className="input" style={{ width:'auto', fontSize:12 }} value={filterCat} onChange={e=>setFilterCat(e.target.value)}>
+            <option value="">Toutes catégories</option>
+            {categories.map(c=><option key={c.id} value={String(c.id)}>{c.name}</option>)}
+          </select>
+          <select className="input" style={{ width:'auto', fontSize:12 }} value={sortBy} onChange={e=>setSortBy(e.target.value)}>
+            <option value="status">Trier : statut</option>
+            <option value="end_date">Trier : échéance</option>
+            <option value="pct_desc">Trier : % ↓</option>
+            <option value="amount_desc">Trier : montant ↓</option>
+          </select>
+          {(search||filterCat) && <button className="btn btn-ghost btn-sm" onClick={()=>{setSearch('');setFilterCat('')}}>✕ Effacer</button>}
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
           <span style={{ fontSize:12, color:'var(--text3)', whiteSpace:'nowrap' }}>{filtered.length} résultat{filtered.length!==1?'s':''}</span>
         </div>
       </div>
 
       {err && <div className="error-box" style={{ marginBottom:16 }}>{err} <button className="btn btn-ghost btn-sm" style={{ marginLeft:8 }} onClick={load}>Réessayer</button></div>}
 
+<<<<<<< HEAD
       {/* Contenu */}
+=======
+      {/* ── Contenu ─────────────────────────────────────────────────────── */}
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
       {loading ? (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:14 }}>
           {[1,2,3,4].map(i=><div key={i} className="skeleton" style={{ height:220, borderRadius:16 }}/>)}
         </div>
       ) : filtered.length === 0 ? (
         <div className="card" style={{ padding:'60px 20px', textAlign:'center', color:'var(--text3)' }}>
+<<<<<<< HEAD
           <div style={{ fontSize:44, marginBottom:14 }}>{search||filterCat?'🔍':mainTab==='saving_global'?'🌍':mainTab==='saving'?'🏦':'🎯'}</div>
           <div style={{ fontSize:15, fontWeight:600, marginBottom:8, color:'var(--text2)' }}>
             {search||filterCat?'Aucun résultat':`Aucun${mainTab==='saving_global'?" objectif d'épargne globale":mainTab==='saving'?" objectif d'épargne":' budget'}`}
@@ -821,17 +1411,39 @@ export default function Budgets() {
               background: mainTab==='saving_global'?'linear-gradient(135deg,#a78bfa,#7c3aed)':mainTab==='saving'?'linear-gradient(135deg,#22d3a0,#059669)':'linear-gradient(135deg,#7c6cfc,#5b4de8)',
             }}>
               {mainTab==='saving_global'?"🌍 Créer une épargne globale":mainTab==='saving'?'🏦 Créer une épargne':'💸 Créer un budget'}
+=======
+          <div style={{ fontSize:44, marginBottom:14 }}>{search||filterCat ? '🔍' : mainTab==='saving' ? '🏦' : '🎯'}</div>
+          <div style={{ fontSize:15, fontWeight:600, marginBottom:8, color:'var(--text2)' }}>
+            {search||filterCat ? 'Aucun résultat' : subTab!=='all' ? `Aucun ${mainTab==='saving'?'objectif d\'épargne':'budget'} ${SUB_TABS.find(t=>t.key===subTab)?.label?.toLowerCase()}` : `Aucun ${mainTab==='saving'?'objectif d\'épargne':'budget'}`}
+          </div>
+          <div style={{ fontSize:13, marginBottom:22 }}>
+            {search||filterCat ? 'Modifiez vos filtres.' : `Créez votre premier ${mainTab==='saving'?'objectif d\'épargne':'budget'}.`}
+          </div>
+          {!search&&!filterCat && (
+            <button onClick={()=>openNew(mainTab)} style={{
+              padding:'10px 20px', border:'none', borderRadius:10, cursor:'pointer', fontFamily:'inherit', fontWeight:700, fontSize:14,
+              background: mainTab==='saving' ? 'linear-gradient(135deg,#22d3a0,#059669)' : 'linear-gradient(135deg,#7c6cfc,#5b4de8)',
+              color:'white',
+            }}>
+              {mainTab==='saving' ? '🏦 Créer une épargne' : '💸 Créer un budget'}
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
             </button>
           )}
         </div>
       ) : viewMode==='grid' ? (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:14 }}>
+<<<<<<< HEAD
           {filtered.map((b,i) =>
             mainTab==='saving_global'
               ? <GlobalSavingCard key={b.id} b={b} onEdit={openEdit} onDelete={setConfirmDelete} idx={i}/>
               : mainTab==='saving'
                 ? <SavingCard key={b.id} b={b} categories={categories} onEdit={openEdit} onDelete={setConfirmDelete} idx={i}/>
                 : <BudgetCard key={b.id} b={b} categories={categories} onEdit={openEdit} onDelete={setConfirmDelete} idx={i}/>
+=======
+          {filtered.map((b,i) => mainTab==='saving'
+            ? <SavingCard key={b.id} b={b} categories={categories} onEdit={openEdit} onDelete={setConfirmDelete} idx={i}/>
+            : <BudgetCard key={b.id} b={b} categories={categories} onEdit={openEdit} onDelete={setConfirmDelete} idx={i}/>
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
           )}
         </div>
       ) : (
@@ -840,12 +1452,17 @@ export default function Budgets() {
             <table style={{ width:'100%', borderCollapse:'collapse', minWidth:680 }}>
               <thead>
                 <tr style={{ borderBottom:'1px solid var(--border)' }}>
+<<<<<<< HEAD
                   {['Nom','Catégorie','Période',mainTab==='budget'?'Limite':'Objectif',mainTab==='budget'?'Dépensé':'Épargné','Progression','Échéance','Statut',''].map(h=>(
+=======
+                  {['Nom','Catégorie','Période',mainTab==='saving'?'Objectif':'Limite',mainTab==='saving'?'Épargné':'Dépensé','Progression','Échéance','Statut',''].map(h=>(
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
                     <th key={h} style={{ padding:'11px 14px', textAlign:'left', fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.05em', whiteSpace:'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
+<<<<<<< HEAD
                 {filtered.map((b,i)=>{
                   const catObj   = b.category&&typeof b.category==='object'?b.category:categories.find(c=>String(c.id)===String(b.category))
                   const catColor = catObj?.color ?? (mainTab==='budget'?'#7c6cfc':mainTab==='saving'?'#22d3a0':'#a78bfa')
@@ -876,6 +1493,36 @@ export default function Budgets() {
                         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                           <div className="progress" style={{ height:5, flex:1 }}>
                             <div className="progress-fill" style={{ width:`${pct}%`, height:'100%', background:mainTab==='budget'&&spent>limit?'#f5476a':mainTab==='saving_global'?'linear-gradient(90deg,#a78bfa,#c4b5fd)':mainTab==='saving'?'linear-gradient(90deg,#22d3a0,#34d399)':`linear-gradient(90deg,${catColor},${catColor}88)` }}/>
+=======
+                {filtered.map((b,i) => {
+                  const catObj   = b.category&&typeof b.category==='object' ? b.category : categories.find(c=>String(c.id)===String(b.category_id))
+                  const catColor = catObj?.color ?? (mainTab==='saving'?'#22d3a0':'#7c6cfc')
+                  const limit = Math.max(
+                    Number(b.limit_amount) || 0,
+                    Number(b.target_amount) || 0
+                  )
+                  const spent    = b.spent_amount ?? 0
+                  const pct      = limit>0 ? Math.min((spent/limit)*100,100) : 0
+                  const dl       = getDaysLeft(b.end_date)
+                  return (
+                    <tr key={b.id} className="table-row slide-right" style={{ animationDelay:`${i*.03}s` }}>
+                      <td style={{ padding:'11px 14px', fontSize:13, fontWeight:600, color:'var(--text)' }}>{b.name || catObj?.name || `#${b.id}`}</td>
+                      <td style={{ padding:'11px 14px' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                          <span style={{ width:7, height:7, borderRadius:'50%', background:catColor, display:'inline-block' }}/>
+                          <span style={{ fontSize:12, color:'var(--text2)' }}>{b.category??'—'}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding:'11px 14px', fontSize:11, color:'var(--text3)', fontFamily:'JetBrains Mono,monospace', whiteSpace:'nowrap' }}>
+                        {b.start_date ? `${fmtD(b.start_date)} → ${fmtD(b.end_date)}` : '—'}
+                      </td>
+                      <td style={{ padding:'11px 14px', fontSize:13, fontWeight:700, color:'var(--text)', fontFamily:'JetBrains Mono,monospace' }}>{fmt(limit)}</td>
+                      <td style={{ padding:'11px 14px', fontSize:13, fontWeight:700, fontFamily:'JetBrains Mono,monospace', color: mainTab==='saving'?'#22d3a0':(spent>limit?'#f5476a':'var(--text)') }}>{fmt(spent)}</td>
+                      <td style={{ padding:'11px 14px', minWidth:120 }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                          <div className="progress" style={{ height:5, flex:1 }}>
+                            <div className="progress-fill" style={{ width:`${pct}%`, height:'100%', background: mainTab==='saving' ? 'linear-gradient(90deg,#22d3a0,#34d399)' : (spent>limit?'#f5476a':pct>80?'#f59e0b':`linear-gradient(90deg,${catColor},${catColor}88)`) }}/>
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
                           </div>
                           <span style={{ fontSize:11, fontWeight:700, color:'var(--text3)', minWidth:28 }}>{pct.toFixed(0)}%</span>
                         </div>
@@ -907,4 +1554,8 @@ export default function Budgets() {
       {confirmDelete && <ConfirmModal onConfirm={handleDelete} onCancel={()=>setConfirmDelete(null)}/>}
     </div>
   )
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
