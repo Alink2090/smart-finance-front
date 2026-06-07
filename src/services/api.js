@@ -71,11 +71,7 @@ export const transactionsAPI = {
 
 // ── Categories ────────────────────────────────────────────────────────────────
 export const categoriesAPI = {
-<<<<<<< HEAD
   getAll: (userId)     => http.post('/Api_Gestion/categories/get/', { user_id: userId }),
-=======
-  getAll: ()     => http.get('/Api_Gestion/categories/get/'),
->>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
   create: (data) => http.post('/Api_Gestion/categories/create/', data),
   delete: (id)   => http.delete(`/Api_Gestion/categories/${id}/`),
 }
@@ -87,17 +83,6 @@ export const budgetsAPI = {
   update: (data)              => http.post('/Api_Gestion/budgets/update/', data),
   delete: (budgetId, userId)  => http.post(`/Api_Gestion/budgets/delete/${budgetId}/`, { user_id: userId }),
 }
-
-<<<<<<< HEAD
-
-=======
-// ── Analytics ─────────────────────────────────────────────────────────────────
-//export const analyticsAPI = {
-//  dashboard:        (userId) => http.post('/analytics/dashboard/', { user_id: userId }),
-//  categoryExpenses: (userId) => http.post('/analytics/category-expenses/', { user_id: userId }),
-//  monthlyExpenses:  (userId) => http.post('/analytics/monthly-expenses/', { user_id: userId }),
-//}
->>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
 
 // ── Analytics — tous les calculs sont maintenant faits côté Django ─────────────
 export const analyticsAPI = {

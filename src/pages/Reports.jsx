@@ -56,12 +56,8 @@ export default function Reports() {
   const [sortCol,    setSortCol]    = useState('date')
   const [sortDir,    setSortDir]    = useState('desc')
   const [page,       setPage]       = useState(1)
-<<<<<<< HEAD
-  const PAGE_SIZE = 8
-=======
-  const PAGE_SIZE = 15
->>>>>>> f88c633e33145195c8ab154dd43130709eeb48c3
 
+  const PAGE_SIZE = 8
   const load = useCallback(async () => {
     if (!user?.id) return
     setLoading(true); setErr(null)
