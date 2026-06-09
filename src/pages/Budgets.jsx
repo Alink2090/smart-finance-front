@@ -191,7 +191,7 @@ function BudgetForm({ categories, initial, defaultType, onSave, onCancel }) {
                 <select className="input" value={form.category_id} onChange={e=>set('category_id',e.target.value)}>
                   <option value="">Sélectionner…</option>
                   {categories
-                  .filter((c) => isSaving ? c.type === 'income' : c.type === 'expense')
+                  .filter((c) => isSaving ? c.type === 'income' || c.type === 'both' : c.type === 'expense' || c.type === 'both')
                   .map(c=><option key={c.id} value={String(c.id)}>{c.icon?c.icon+' ':''}{c.name}</option>)}
                 </select>
               </div>

@@ -1,3 +1,4 @@
+
 /**
  * Reports.jsx — VERSION ALLÉGÉE
  * Aucun calcul côté front — tout vient du back.
@@ -121,6 +122,9 @@ export default function Reports() {
   const today = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
 
   const SortIcon = ({ col }) => sortCol === col ? (sortDir === 'asc' ? '↑' : '↓') : <span style={{ opacity: .3 }}>↕</span>
+
+  // Helper : extrait le nom d'une catégorie qu'elle soit objet ou string
+  const catName = cat => cat ? (typeof cat === 'object' ? cat.name : cat) : null
 
   return (
     <div className="fade-up" style={{ padding: 24 }}>
@@ -282,6 +286,7 @@ export default function Reports() {
           <option value="all">Tous types</option>
           <option value="income">Revenus</option>
           <option value="expense">Dépenses</option>
+          <option value="transfer">Transfert</option>
         </select>
         <div style={{ display: 'flex', gap: 10, marginLeft: 'auto', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, color: 'var(--text3)' }}>{filtered.length} transaction{filtered.length !== 1 ? 's' : ''}</span>
@@ -308,16 +313,17 @@ export default function Reports() {
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 620 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
                   {[
-                    { label: 'Date',     col: 'date'   },
-                    { label: 'Titre',    col: 'title'  },
-                    { label: 'Catégorie',col: null     },
-                    { label: 'Type',     col: null     },
-                    { label: 'Montant',  col: 'amount' },
-                    { label: 'Méthode',  col: null     },
+                    { label: 'Date',        col: 'date'   },
+                    { label: 'Titre',       col: 'title'  },
+                    { label: 'Source',      col: null     },
+                    { label: 'Destination', col: null     },
+                    { label: 'Type',        col: null     },
+                    { label: 'Montant',     col: 'amount' },
+                    { label: 'Méthode',     col: null     },
                   ].map(h => (
                     <th key={h.label} onClick={h.col ? () => toggleSort(h.col) : undefined} style={{
                       padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600,
@@ -333,27 +339,91 @@ export default function Reports() {
               <tbody>
                 {paginated.map((tx, i) => (
                   <tr key={tx.id ?? i} className="table-row">
+
+                    {/* Date */}
                     <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--text3)', fontFamily: 'JetBrains Mono,monospace', whiteSpace: 'nowrap' }}>{fmtDate(tx.date)}</td>
+
+                    {/* Titre */}
                     <td style={{ padding: '11px 14px', fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{tx.title ?? '—'}</td>
+
+                    {/* Source = income_category */}
                     <td style={{ padding: '11px 14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: tx.category?.color ?? '#888', display: 'inline-block', flexShrink: 0 }} />
-                        <span style={{ fontSize: 12, color: 'var(--text2)' }}>{tx.category ?? '—'}</span>
-                      </div>
+                      {catName(tx.income_category) ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22d3a0', display: 'inline-block', flexShrink: 0 }} />
+                          <span style={{ fontSize: 12, color: 'var(--text2)' }}>{catName(tx.income_category)}</span>
+                        </div>
+                      ) : <span style={{ fontSize: 12, color: 'var(--text3)' }}>—</span>}
                     </td>
+
+                    {/* Destination = expense_category */}
                     <td style={{ padding: '11px 14px' }}>
-                      <span style={{
-                        fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 100,
-                        background: tx.type === 'income' ? 'rgba(34,211,160,.12)' : 'rgba(245,71,106,.12)',
-                        color: tx.type === 'income' ? '#22d3a0' : '#f5476a',
-                      }}>
-                        {tx.type === 'income' ? 'Revenu' : 'Dépense'}
+                      {catName(tx.expense_category) ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f5476a', display: 'inline-block', flexShrink: 0 }} />
+                          <span style={{ fontSize: 12, color: 'var(--text2)' }}>{catName(tx.expense_category)}</span>
+                        </div>
+                      ) : <span style={{ fontSize: 12, color: 'var(--text3)' }}>—</span>}
+                    </td>
+
+                    {/* Type */}
+                    <td style={{ padding: '11px 14px' }}>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: 100,
+                          background:
+                            tx.type === 'income'
+                              ? 'rgba(34,211,160,.12)'
+                              : tx.type === 'transfer'
+                              ? 'rgba(56,189,248,.12)'
+                              : 'rgba(245,71,106,.12)', // expense par défaut
+
+                          color:
+                            tx.type === 'income'
+                              ? '#22d3a0'
+                              : tx.type === 'transfer'
+                              ? '#38bdf8'
+                              : '#f5476a',
+                        }}
+                      >
+                        {tx.type === 'income'
+                          ? 'Revenu'
+                          : tx.type === 'transfer'
+                          ? 'Transfert'
+                          : 'Dépense'}
                       </span>
                     </td>
-                    <td style={{ padding: '11px 14px', textAlign: 'right', fontSize: 13, fontWeight: 700, fontFamily: 'JetBrains Mono,monospace', color: tx.type === 'income' ? '#22d3a0' : '#f5476a' }}>
-                      {tx.type === 'income' ? '+' : '-'}{fmtFull(tx.amount)}
+
+                    {/* Montant */}
+                    <td
+                      style={{
+                        padding: '11px 14px',
+                        textAlign: 'right',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        fontFamily: 'JetBrains Mono,monospace',
+                        color:
+                          tx.type === 'income'
+                            ? '#22d3a0'
+                            : tx.type === 'transfer'
+                            ? '#38bdf8'
+                            : '#f5476a',
+                      }}
+                    >
+                      {tx.type === 'transfer'
+                        ? '↔'
+                        : tx.type === 'income'
+                        ? '+'
+                        : '-'}
+                      {fmtFull(tx.amount)}
                     </td>
+
+                    {/* Méthode */}
                     <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--text3)' }}>{tx.payment_method ?? '—'}</td>
+
                   </tr>
                 ))}
               </tbody>
