@@ -1,4 +1,5 @@
 
+import { useIsMobile } from '../hooks/useIsMobile'
 /**
  * Reports.jsx — VERSION ALLÉGÉE
  * Aucun calcul côté front — tout vient du back.
@@ -126,8 +127,9 @@ export default function Reports() {
   // Helper : extrait le nom d'une catégorie qu'elle soit objet ou string
   const catName = cat => cat ? (typeof cat === 'object' ? cat.name : cat) : null
 
+  const isMobile = useIsMobile()
   return (
-    <div className="fade-up" style={{ padding: 24 }}>
+    <div className="fade-up" style={{ padding: isMobile ? 16 : 24 }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
