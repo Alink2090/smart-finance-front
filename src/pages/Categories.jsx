@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { createPortal } from 'react-dom'
 import { categoriesAPI } from '../services/api'
 import { useToast } from '../context/ToastContext'
@@ -324,8 +325,9 @@ export default function Categories() {
   const confirmName = categories.find(c => c.id === confirmId)?.name ?? ''
 
   // ── Rendu ──────────────────────────────────
+  const isMobile = useIsMobile()
   return (
-    <div className="fade-up" style={{ padding: 24 }}>
+    <div className="fade-up" style={{ padding: isMobile ? 16 : 24 }}>
 
       {/* En-tête de page */}
       <div style={{

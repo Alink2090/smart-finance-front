@@ -1,4 +1,5 @@
 /**
+import { useIsMobile } from '../hooks/useIsMobile'
  * Analytics.jsx — VERSION ALLÉGÉE
  *
  * AVANT : useFinanceCalcs() calculait tout côté front
@@ -124,8 +125,9 @@ export default function Analytics() {
   // Données chart avec point projection (déjà calculé par le back)
   const chartData = metrics?.monthly_with_projection ?? monthly
 
+  const isMobile = useIsMobile()
   return (
-    <div className="fade-up" style={{ padding: 24 }}>
+    <div className="fade-up" style={{ padding: isMobile ? 16 : 24 }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
@@ -297,7 +299,7 @@ export default function Analytics() {
 
       {/* Comparaison mois — données servies par le back via metrics.curr/prev */}
       {!loading && metrics?.curr && metrics?.prev && (
-        <div className="card" style={{ padding: 24 }}>
+        <div className="card" style={{ padding: isMobile ? 16 : 24 }}>
           <div style={{ marginBottom: 18 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Comparaison mensuelle</div>
             <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 3 }}>{metrics.prev.month} → {metrics.curr.month}</div>

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { transactionsAPI, categoriesAPI } from '../services/api'
 import { useToast } from '../context/ToastContext'
 import { useAuth } from '../context/AuthContext'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const fmt = n => `${new Intl.NumberFormat('fr-FR').format(Number(n) || 0)} FCFA`
 const PAGE_SIZE = 8
@@ -400,137 +401,276 @@ export default function Transactions() {
   const totalExpense  = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount ?? 0), 0)
   const totalTransfer = filtered.filter(t => t.type === 'transfer').reduce((s, t) => s + (t.amount ?? 0), 0)
 
+  const isMobile = useIsMobile()
+
   const getAccent = tx => {
     if (tx.type === 'transfer') return '#38bdf8'
     if (tx.type === 'income')   return tx.income_category?.color  ?? '#22d3a0'
     return tx.expense_category?.color ?? '#f5476a'
   }
 
-  return (
-    <div className="fade-up" style={{ padding: 24 }}>
+  // ── Mobile render ──────────────────────────────────────────────────────────
+  if (isMobile) {
+    return (
+      <div className="fade-up" style={{ padding: 16 }}>
 
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <div className="page-title">Transactions</div>
-          <div className="page-subtitle">{filtered.length} transaction{filtered.length !== 1 ? 's' : ''}</div>
-        </div>
-        <button className="btn btn-primary" onClick={() => { setEditTx(null); setShowForm(true) }}>
-          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          Nouvelle transaction
-        </button>
-      </div>
-
-      {/* Filtres */}
-      <div className="card" style={{ padding: 16, marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
-          <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 160 }}>
-            <svg width="13" height="13" fill="none" stroke="var(--text3)" strokeWidth="2" viewBox="0 0 24 24"
-              style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input className="input" placeholder="Rechercher…" value={filters.search}
-              onChange={e => setFilter('search', e.target.value)} style={{ paddingLeft: 30 }} />
+        {/* Header */}
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:14 }}>
+          <div>
+            <div className="page-title">Transactions</div>
+            <div className="page-subtitle">{filtered.length} transaction{filtered.length!==1?'s':''}</div>
           </div>
+        </div>
 
-          {/* Filtre type incluant transfert */}
-          <select className="input" style={{ width: 'auto', flex: '0 0 140px' }}
+        {/* Filtres rapides — scroll horizontal */}
+        <div style={{ display:'flex', gap:8, overflowX:'auto', marginBottom:12, paddingBottom:4, scrollbarWidth:'none' }}
+          className="filters-row">
+          <select className="input" style={{ flex:'0 0 auto', minWidth:120, fontSize:13, padding:'8px 12px' }}
             value={filters.type} onChange={e => setFilter('type', e.target.value)}>
             <option value="all">Tous types</option>
             <option value="income">Revenus</option>
             <option value="expense">Dépenses</option>
             <option value="transfer">Transferts</option>
           </select>
-
-          <select className="input" style={{ width: 'auto', flex: '0 0 165px' }}
-            value={filters.income_category} onChange={e => setFilter('income_category', e.target.value)}>
-            <option value="">Toutes sources</option>
-            {incomeCategories.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
-          </select>
-
-          <select className="input" style={{ width: 'auto', flex: '0 0 165px' }}
-            value={filters.expense_category} onChange={e => setFilter('expense_category', e.target.value)}>
-            <option value="">Toutes destinations</option>
-            {expenseCategories.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
-          </select>
-
-          <select className="input" style={{ width: 'auto', flex: '0 0 150px' }}
+          <select className="input" style={{ flex:'0 0 auto', minWidth:140, fontSize:13, padding:'8px 12px' }}
             value={filters.sort} onChange={e => setFilter('sort', e.target.value)}>
             <option value="date_desc">Date ↓</option>
             <option value="date_asc">Date ↑</option>
             <option value="amount_desc">Montant ↓</option>
             <option value="amount_asc">Montant ↑</option>
           </select>
-
-          {hasFilter && <button className="btn btn-ghost btn-sm" onClick={resetFilters}>Réinitialiser</button>}
+          <input className="input" type="text" placeholder="🔍 Rechercher…"
+            style={{ flex:'0 0 auto', minWidth:160, fontSize:13, padding:'8px 12px' }}
+            value={filters.search} onChange={e => setFilter('search', e.target.value)} />
+          {hasFilter && (
+            <button className="btn btn-ghost btn-sm" style={{ flexShrink:0 }} onClick={resetFilters}>Réinit.</button>
+          )}
         </div>
 
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: '1 1 260px' }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.04em', whiteSpace: 'nowrap' }}>Du</span>
-            <input className="input" type="date" value={filters.dateFrom} onChange={e => setFilter('dateFrom', e.target.value)} style={{ flex: 1 }} />
-            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Au</span>
-            <input className="input" type="date" value={filters.dateTo}   onChange={e => setFilter('dateTo',   e.target.value)} style={{ flex: 1 }} />
+        {/* Résumé rapide */}
+        {!loading && filtered.length > 0 && (
+          <div style={{ display:'flex', gap:8, overflowX:'auto', marginBottom:14, paddingBottom:2, scrollbarWidth:'none' }}>
+            {[
+              { label:'Revenus',  value: `+${new Intl.NumberFormat('fr-FR').format(totalIncome)}`,               color:'#22d3a0' },
+              { label:'Dépenses', value: `-${new Intl.NumberFormat('fr-FR').format(totalExpense)}`,              color:'#f5476a' },
+              { label:'Net',      value: `${(totalIncome-totalExpense)>=0?'+':''}${new Intl.NumberFormat('fr-FR').format(totalIncome-totalExpense)}`, color:(totalIncome-totalExpense)>=0?'#22d3a0':'#f5476a' },
+            ].map((s,i) => (
+              <div key={i} style={{ flexShrink:0, display:'flex', gap:6, padding:'6px 12px', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:8, fontSize:12, alignItems:'center' }}>
+                <span style={{ color:'var(--text3)' }}>{s.label}</span>
+                <span style={{ fontWeight:700, color:s.color, fontFamily:'JetBrains Mono,monospace', fontSize:11 }}>{s.value}</span>
+              </div>
+            ))}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: '1 1 200px' }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.04em', whiteSpace: 'nowrap' }}>Min</span>
-            <input className="input" type="number" min="0" placeholder="0" value={filters.amountMin} onChange={e => setFilter('amountMin', e.target.value)} style={{ flex: 1 }} />
-            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.04em', whiteSpace: 'nowrap' }}>Max</span>
-            <input className="input" type="number" min="0" placeholder="∞" value={filters.amountMax} onChange={e => setFilter('amountMax', e.target.value)} style={{ flex: 1 }} />
+        )}
+
+        {/* Liste mobile */}
+        {err && <div className="error-box" style={{ marginBottom:12, fontSize:13 }}>{err}</div>}
+
+        {loading ? (
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            {[...Array(5)].map((_,i) => (
+              <div key={i} style={{ display:'flex', gap:12, alignItems:'center', padding:'14px 0' }}>
+                <div className="skeleton" style={{ width:42, height:42, borderRadius:12, flexShrink:0 }} />
+                <div style={{ flex:1 }}>
+                  <div className="skeleton" style={{ width:'55%', height:13, marginBottom:8 }} />
+                  <div className="skeleton" style={{ width:'35%', height:11 }} />
+                </div>
+                <div className="skeleton" style={{ width:80, height:16 }} />
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding:'48px 0', textAlign:'center', color:'var(--text3)' }}>
+            <div style={{ fontSize:40, marginBottom:10 }}>📭</div>
+            <div style={{ fontSize:15, fontWeight:600, marginBottom:4, color:'var(--text2)' }}>Aucune transaction</div>
+            <div style={{ fontSize:13 }}>Modifiez les filtres ou ajoutez une transaction.</div>
+          </div>
+        ) : (
+          <>
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              {paginated.map((tx, i) => {
+                const accent = getAccent(tx)
+                const badge  = TYPE_BADGE[tx.type] ?? TYPE_BADGE.expense
+                const inCat  = tx.income_category
+                const exCat  = tx.expense_category
+                const catName = tx.type==='income' ? (typeof inCat==='object'?inCat?.name:inCat) : (typeof exCat==='object'?exCat?.name:exCat)
+
+                return (
+                  <div key={tx.id} className="slide-right" style={{ animationDelay:`${i*.025}s` }}>
+                    <div style={{
+                      display:'flex', alignItems:'center', gap:12,
+                      padding:'13px 14px',
+                      background:'var(--surface)', border:'1px solid var(--border)',
+                      borderRadius:14, cursor:'default',
+                    }}>
+                      {/* Icon */}
+                      <div style={{ width:42, height:42, borderRadius:12, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, background:accent+'22', border:`1px solid ${accent}30` }}>
+                        {tx.type==='transfer'?'↔':tx.type==='income'?(inCat?.icon??'↑'):(exCat?.icon??'↓')}
+                      </div>
+                      {/* Info */}
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:13, fontWeight:600, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{tx.title}</div>
+                        <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:2 }}>
+                          {catName && <span style={{ fontSize:11, color:'var(--text3)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:100 }}>{catName}</span>}
+                          {catName && tx.date && <span style={{ fontSize:11, color:'var(--border2)' }}>·</span>}
+                          {tx.date && <span style={{ fontSize:11, color:'var(--text3)', fontFamily:'JetBrains Mono,monospace', flexShrink:0 }}>{new Date(tx.date+'T00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}</span>}
+                        </div>
+                      </div>
+                      {/* Amount */}
+                      <div style={{ textAlign:'right', flexShrink:0 }}>
+                        <div style={{ fontSize:14, fontWeight:700, fontFamily:'JetBrains Mono,monospace', color:accent }}>
+                          {tx.type==='income'?'+':tx.type==='transfer'?'↔':'-'}{new Intl.NumberFormat('fr-FR').format(tx.amount)}
+                        </div>
+                        <div style={{ fontSize:10, marginTop:2, padding:'2px 6px', borderRadius:100, background:badge.bg, color:badge.color, display:'inline-block' }}>
+                          {badge.label}
+                        </div>
+                      </div>
+                      {/* Actions */}
+                      <div style={{ display:'flex', flexDirection:'column', gap:4, flexShrink:0 }}>
+                        <button className="btn btn-ghost btn-sm" style={{ padding:'5px 7px' }} onClick={() => { setEditTx(tx); setShowForm(true) }}>
+                          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                        <button className="btn btn-danger btn-sm" style={{ padding:'5px 7px' }} onClick={() => setConfirmId(tx.id)}>
+                          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <Pagination page={page} total={filtered.length} pageSize={PAGE_SIZE} onChange={p => { setPage(p); window.scrollTo(0,0) }} />
+          </>
+        )}
+
+        {/* FAB ajouter */}
+        <button className="fab" onClick={() => { setEditTx(null); setShowForm(true) }} aria-label="Ajouter une transaction">
+          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+
+        {(showForm || editTx) && (
+          <TransactionForm
+            incomeCategories={incomeCategories}
+            expenseCategories={expenseCategories}
+            initial={editTx}
+            onSave={handleSave}
+            onCancel={() => { setShowForm(false); setEditTx(null) }}
+          />
+        )}
+        {confirmId && <ConfirmModal onConfirm={handleDelete} onCancel={() => setConfirmId(null)} />}
+      </div>
+    )
+  }
+
+  // ── Desktop render ─────────────────────────────────────────────────────────
+  return (
+    <div className="fade-up" style={{ padding: 24 }}>
+
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:24, flexWrap:'wrap', gap:12 }}>
+        <div>
+          <div className="page-title">Transactions</div>
+          <div className="page-subtitle">{filtered.length} transaction{filtered.length!==1?'s':''}</div>
+        </div>
+        <button className="btn btn-primary" onClick={() => { setEditTx(null); setShowForm(true) }}>
+          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Nouvelle transaction
+        </button>
+      </div>
+
+      {/* Filtres */}
+      <div className="card" style={{ padding:16, marginBottom:16, display:'flex', flexDirection:'column', gap:12 }}>
+        <div style={{ display:'flex', gap:10, flexWrap:'wrap', alignItems:'center' }}>
+          <div style={{ position:'relative', flex:'1 1 200px' }}>
+            <svg style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', color:'var(--text3)', pointerEvents:'none' }} width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input className="input" style={{ paddingLeft:36 }} placeholder="Rechercher…" value={filters.search} onChange={e => setFilter('search', e.target.value)} />
+          </div>
+          <select className="input" style={{ width:'auto', flex:'0 0 140px' }} value={filters.type} onChange={e => setFilter('type', e.target.value)}>
+            <option value="all">Tous types</option>
+            <option value="income">Revenus</option>
+            <option value="expense">Dépenses</option>
+            <option value="transfer">Transferts</option>
+          </select>
+          <select className="input" style={{ width:'auto', flex:'0 0 165px' }} value={filters.income_category} onChange={e => setFilter('income_category', e.target.value)}>
+            <option value="">Toutes sources</option>
+            {incomeCategories.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+          </select>
+          <select className="input" style={{ width:'auto', flex:'0 0 165px' }} value={filters.expense_category} onChange={e => setFilter('expense_category', e.target.value)}>
+            <option value="">Toutes destinations</option>
+            {expenseCategories.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+          </select>
+          <select className="input" style={{ width:'auto', flex:'0 0 150px' }} value={filters.sort} onChange={e => setFilter('sort', e.target.value)}>
+            <option value="date_desc">Date ↓</option>
+            <option value="date_asc">Date ↑</option>
+            <option value="amount_desc">Montant ↓</option>
+            <option value="amount_asc">Montant ↑</option>
+          </select>
+          {hasFilter && <button className="btn btn-ghost btn-sm" onClick={resetFilters}>Réinitialiser</button>}
+        </div>
+        <div style={{ display:'flex', gap:10, flexWrap:'wrap', alignItems:'center' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:6, flex:'1 1 260px' }}>
+            <span style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', whiteSpace:'nowrap' }}>Du</span>
+            <input className="input" type="date" value={filters.dateFrom} onChange={e => setFilter('dateFrom', e.target.value)} style={{ flex:1 }} />
+            <span style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em' }}>Au</span>
+            <input className="input" type="date" value={filters.dateTo} onChange={e => setFilter('dateTo', e.target.value)} style={{ flex:1 }} />
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:6, flex:'1 1 200px' }}>
+            <span style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', whiteSpace:'nowrap' }}>Min</span>
+            <input className="input" type="number" min="0" placeholder="0" value={filters.amountMin} onChange={e => setFilter('amountMin', e.target.value)} style={{ flex:1 }} />
+            <span style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', whiteSpace:'nowrap' }}>Max</span>
+            <input className="input" type="number" min="0" placeholder="∞" value={filters.amountMax} onChange={e => setFilter('amountMax', e.target.value)} style={{ flex:1 }} />
           </div>
         </div>
       </div>
 
-      {/* Résumé — 4 tuiles dont transferts */}
+      {/* Résumé */}
       {!loading && filtered.length > 0 && (
-        <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+        <div style={{ display:'flex', gap:10, marginBottom:14, flexWrap:'wrap' }}>
           {[
-            { label: 'Revenus',    value: fmt(totalIncome),               color: '#22d3a0' },
-            { label: 'Dépenses',   value: fmt(totalExpense),              color: '#f5476a' },
-            { label: 'Net',        value: fmt(totalIncome - totalExpense), color: (totalIncome - totalExpense) >= 0 ? '#22d3a0' : '#f5476a' },
-            ...(totalTransfer > 0 ? [{ label: '↔ Transferts', value: fmt(totalTransfer), color: '#38bdf8' }] : []),
-          ].map((s, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 14px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 9, fontSize: 13 }}>
-              <span style={{ color: 'var(--text3)', fontWeight: 500 }}>{s.label}</span>
-              <span style={{ fontWeight: 700, color: s.color, fontFamily: 'JetBrains Mono,monospace' }}>{s.value}</span>
+            { label:'Revenus',    value:fmt(totalIncome),               color:'#22d3a0' },
+            { label:'Dépenses',   value:fmt(totalExpense),              color:'#f5476a' },
+            { label:'Net',        value:fmt(totalIncome-totalExpense),  color:(totalIncome-totalExpense)>=0?'#22d3a0':'#f5476a' },
+            ...(totalTransfer>0?[{ label:'↔ Transferts', value:fmt(totalTransfer), color:'#38bdf8' }]:[]),
+          ].map((s,i) => (
+            <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 14px', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:9, fontSize:13 }}>
+              <span style={{ color:'var(--text3)', fontWeight:500 }}>{s.label}</span>
+              <span style={{ fontWeight:700, color:s.color, fontFamily:'JetBrains Mono,monospace' }}>{s.value}</span>
             </div>
           ))}
         </div>
       )}
 
-      {/* Table */}
-      <div className="card" style={{ overflow: 'hidden' }}>
-        {err && <div className="error-box" style={{ margin: 16 }}>{err} <button className="btn btn-ghost btn-sm" style={{ marginLeft: 8 }} onClick={load}>Réessayer</button></div>}
-
+      {/* Table desktop */}
+      <div className="card" style={{ overflow:'hidden' }}>
+        {err && <div className="error-box" style={{ margin:16 }}>{err} <button className="btn btn-ghost btn-sm" style={{ marginLeft:8 }} onClick={load}>Réessayer</button></div>}
         {loading ? (
-          <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[...Array(6)].map((_, i) => (
-              <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                <div className="skeleton" style={{ width: 38, height: 38, borderRadius: 10, flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <div className="skeleton" style={{ width: '50%', height: 13, marginBottom: 8 }} />
-                  <div className="skeleton" style={{ width: '30%', height: 11 }} />
-                </div>
-                <div className="skeleton" style={{ width: 90, height: 18 }} />
+          <div style={{ padding:20, display:'flex', flexDirection:'column', gap:12 }}>
+            {[...Array(6)].map((_,i) => (
+              <div key={i} style={{ display:'flex', gap:14, alignItems:'center' }}>
+                <div className="skeleton" style={{ width:38, height:38, borderRadius:10, flexShrink:0 }} />
+                <div style={{ flex:1 }}><div className="skeleton" style={{ width:'50%', height:13, marginBottom:8 }} /><div className="skeleton" style={{ width:'30%', height:11 }} /></div>
+                <div className="skeleton" style={{ width:90, height:18 }} />
               </div>
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text3)' }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
-            <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6, color: 'var(--text2)' }}>Aucune transaction trouvée</div>
-            <div style={{ fontSize: 13 }}>Modifiez les filtres ou ajoutez une transaction.</div>
+          <div style={{ padding:'60px 20px', textAlign:'center', color:'var(--text3)' }}>
+            <div style={{ fontSize:40, marginBottom:12 }}>📭</div>
+            <div style={{ fontSize:15, fontWeight:600, marginBottom:6, color:'var(--text2)' }}>Aucune transaction trouvée</div>
+            <div style={{ fontSize:13 }}>Modifiez les filtres ou ajoutez une transaction.</div>
           </div>
         ) : (
           <>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
+            <div style={{ overflowX:'auto' }}>
+              <table style={{ width:'100%', borderCollapse:'collapse', minWidth:720 }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                    {['Transaction', 'Source', 'Destination', 'Montant', 'Type', 'Date', ''].map(h => (
-                      <th key={h} style={{ padding: '12px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.05em', whiteSpace: 'nowrap' }}>{h}</th>
+                  <tr style={{ borderBottom:'1px solid var(--border)' }}>
+                    {['Transaction','Source','Destination','Montant','Type','Date',''].map(h => (
+                      <th key={h} style={{ padding:'12px 14px', textAlign:'left', fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.05em', whiteSpace:'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -540,72 +680,55 @@ export default function Transactions() {
                     const exCat  = tx.expense_category
                     const accent = getAccent(tx)
                     const badge  = TYPE_BADGE[tx.type] ?? TYPE_BADGE.expense
-
                     return (
-                      <tr key={tx.id} className="table-row slide-right" style={{ animationDelay: `${i * .03}s` }}>
-
-                        {/* Titre */}
-                        <td style={{ padding: '13px 14px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, background: accent + '22', border: `1px solid ${accent}30` }}>
-                              {tx.type === 'transfer' ? '↔' : tx.type === 'income' ? (inCat?.icon ?? '↑') : (exCat?.icon ?? '↓')}
+                      <tr key={tx.id} className="table-row slide-right" style={{ animationDelay:`${i*.03}s` }}>
+                        <td style={{ padding:'13px 14px' }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                            <div style={{ width:36, height:36, borderRadius:10, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, background:accent+'22', border:`1px solid ${accent}30` }}>
+                              {tx.type==='transfer'?'↔':tx.type==='income'?(inCat?.icon??'↑'):(exCat?.icon??'↓')}
                             </div>
                             <div>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{tx.title}</div>
-                              {tx.payment_method && <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 1 }}>{tx.payment_method}</div>}
+                              <div style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>{tx.title}</div>
+                              {tx.payment_method && <div style={{ fontSize:11, color:'var(--text3)', marginTop:1 }}>{tx.payment_method}</div>}
                             </div>
                           </div>
                         </td>
-
-                        {/* Source */}
-                        <td style={{ padding: '13px 14px' }}>
+                        <td style={{ padding:'13px 14px' }}>
                           {inCat ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22d3a0', display: 'inline-block', flexShrink: 0 }} />
-                              <span style={{ fontSize: 12, color: 'var(--text2)' }}>{typeof inCat === 'object' ? inCat.name : inCat}</span>
+                            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                              <span style={{ width:7, height:7, borderRadius:'50%', background:'#22d3a0', display:'inline-block', flexShrink:0 }} />
+                              <span style={{ fontSize:12, color:'var(--text2)' }}>{typeof inCat==='object'?inCat.name:inCat}</span>
                             </div>
-                          ) : <span style={{ fontSize: 12, color: 'var(--text3)' }}>—</span>}
+                          ) : <span style={{ fontSize:12, color:'var(--text3)' }}>—</span>}
                         </td>
-
-                        {/* Destination */}
-                        <td style={{ padding: '13px 14px' }}>
-                          {(tx.type === 'expense' || tx.type === 'transfer') && exCat ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ width: 7, height: 7, borderRadius: '50%', background: tx.type === 'transfer' ? '#38bdf8' : (exCat?.color ?? '#f5476a'), display: 'inline-block', flexShrink: 0 }} />
-                              <span style={{ fontSize: 12, color: 'var(--text2)' }}>{typeof exCat === 'object' ? exCat.name : exCat}</span>
+                        <td style={{ padding:'13px 14px' }}>
+                          {(tx.type==='expense'||tx.type==='transfer')&&exCat ? (
+                            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                              <span style={{ width:7, height:7, borderRadius:'50%', background:tx.type==='transfer'?'#38bdf8':(exCat?.color??'#f5476a'), display:'inline-block', flexShrink:0 }} />
+                              <span style={{ fontSize:12, color:'var(--text2)' }}>{typeof exCat==='object'?exCat.name:exCat}</span>
                             </div>
-                          ) : <span style={{ fontSize: 11, color: 'var(--text3)', fontStyle: 'italic' }}>—</span>}
+                          ) : <span style={{ fontSize:11, color:'var(--text3)', fontStyle:'italic' }}>—</span>}
                         </td>
-
-                        {/* Montant */}
-                        <td style={{ padding: '13px 14px' }}>
-                          <span style={{ fontSize: 14, fontWeight: 700, fontFamily: 'JetBrains Mono,monospace', color: accent }}>
-                            {tx.type === 'income' ? '+' : tx.type === 'transfer' ? '↔' : '-'}{fmt(tx.amount)}
+                        <td style={{ padding:'13px 14px' }}>
+                          <span style={{ fontSize:14, fontWeight:700, fontFamily:'JetBrains Mono,monospace', color:accent }}>
+                            {tx.type==='income'?'+':tx.type==='transfer'?'↔':'-'}{fmt(tx.amount)}
                           </span>
                         </td>
-
-                        {/* Badge type */}
-                        <td style={{ padding: '13px 14px' }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 100, background: badge.bg, color: badge.color }}>
-                            {badge.label}
+                        <td style={{ padding:'13px 14px' }}>
+                          <span style={{ fontSize:11, fontWeight:700, padding:'3px 9px', borderRadius:100, background:badge.bg, color:badge.color }}>{badge.label}</span>
+                        </td>
+                        <td style={{ padding:'13px 14px' }}>
+                          <span style={{ fontSize:12, color:'var(--text3)', fontFamily:'JetBrains Mono,monospace' }}>
+                            {tx.date ? new Date(tx.date+'T00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'}) : '—'}
                           </span>
                         </td>
-
-                        {/* Date */}
-                        <td style={{ padding: '13px 14px' }}>
-                          <span style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'JetBrains Mono,monospace' }}>
-                            {tx.date ? new Date(tx.date + 'T00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
-                          </span>
-                        </td>
-
-                        {/* Actions */}
-                        <td style={{ padding: '13px 14px' }}>
-                          <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                            <button className="btn btn-ghost btn-sm" style={{ padding: '5px 8px' }} onClick={() => { setEditTx(tx); setShowForm(true) }}>
-                              <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                        <td style={{ padding:'13px 14px' }}>
+                          <div style={{ display:'flex', gap:4, justifyContent:'flex-end' }}>
+                            <button className="btn btn-ghost btn-sm" style={{ padding:'5px 8px' }} onClick={() => { setEditTx(tx); setShowForm(true) }}>
+                              <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                             </button>
-                            <button className="btn btn-danger btn-sm" style={{ padding: '5px 8px' }} onClick={() => setConfirmId(tx.id)}>
-                              <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" /><path d="M10 11v6M14 11v6" /></svg>
+                            <button className="btn btn-danger btn-sm" style={{ padding:'5px 8px' }} onClick={() => setConfirmId(tx.id)}>
+                              <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
                             </button>
                           </div>
                         </td>
@@ -615,14 +738,12 @@ export default function Transactions() {
                 </tbody>
               </table>
             </div>
-
-            <Pagination page={page} total={filtered.length} pageSize={PAGE_SIZE}
-              onChange={p => { setPage(p); window.scrollTo(0, 0) }} />
+            <Pagination page={page} total={filtered.length} pageSize={PAGE_SIZE} onChange={p => { setPage(p); window.scrollTo(0,0) }} />
           </>
         )}
       </div>
 
-      {(showForm || editTx) && (
+      {(showForm||editTx) && (
         <TransactionForm
           incomeCategories={incomeCategories}
           expenseCategories={expenseCategories}

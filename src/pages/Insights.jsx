@@ -1,4 +1,5 @@
 /**
+import { useIsMobile } from '../hooks/useIsMobile'
  * Insights.jsx — VERSION ALLÉGÉE
  *
  * AVANT : generateInsights() + useInsights() calculaient tout côté React
@@ -134,8 +135,9 @@ export default function Insights() {
     return acc
   }, {})
 
+  const isMobile = useIsMobile()
   return (
-    <div className="fade-up" style={{ padding: 24 }}>
+    <div className="fade-up" style={{ padding: isMobile ? 16 : 24 }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>

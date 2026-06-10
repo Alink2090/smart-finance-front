@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
+import { useIsMobile } from '../hooks/useIsMobile'
+import MobileLayout from './MobileLayout'
 import logo from '../assets/logo_1.png'
 
 const NAV = [
@@ -34,37 +36,15 @@ function Sidebar({ mobile, onClose }) {
       display:'flex', flexDirection:'column', padding:'0', position:'sticky', top:0,
       ...(mobile ? { position:'fixed', top:0, left:0, zIndex:201, width:240, boxShadow:'20px 0 60px rgba(0,0,0,.5)' } : {})
     }}>
-      {/* Logo */}
       <div style={{ padding:'22px 18px 18px', borderBottom:'1px solid var(--border)' }}>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <div style={{
-            width:40,
-            height:40,
-            borderRadius:12,
-            background:'linear-gradient(135deg,#7c6cfc,#5b4de8)',
-            display:'flex',
-            alignItems:'center',
-            justifyContent:'center'
-          }}>
-            <img
-              src={logo}
-              alt="logo"
-              style={{
-                width:40,
-                height:40,
-                borderRadius:12,
-                objectFit:'contain'
-              }}
-            />
-          </div>
+          <img src={logo} alt="logo" style={{ width:40, height:40, borderRadius:12, objectFit:'contain' }} />
           <div>
             <div style={{ fontSize:14, fontWeight:800, color:'var(--text)', letterSpacing:'-.02em' }}>SmartFinance</div>
             <div style={{ fontSize:11, color:'var(--text3)', fontWeight:500 }}>Manager</div>
           </div>
         </div>
       </div>
-
-      {/* Nav */}
       <nav style={{ padding:'12px 10px', flex:1, overflowY:'auto' }}>
         {NAV.map(item => (
           <NavLink key={item.to} to={item.to} onClick={onClose}
@@ -75,8 +55,6 @@ function Sidebar({ mobile, onClose }) {
           </NavLink>
         ))}
       </nav>
-
-      {/* User */}
       <div style={{ padding:'12px 10px', borderTop:'1px solid var(--border)' }}>
         <div style={{
           display:'flex', alignItems:'center', gap:10, padding:'10px 12px',
@@ -102,45 +80,23 @@ function Sidebar({ mobile, onClose }) {
   )
 }
 
-function Topbar({ onMenuClick }) {
-  return (
-    <div style={{
-      height:58, background:'var(--surface)', borderBottom:'1px solid var(--border)',
-      display:'flex', alignItems:'center', padding:'0 20px', gap:12,
-      position:'sticky', top:0, zIndex:50
-    }}>
-      <button className="btn btn-ghost" style={{ padding:'7px', border:'none', background:'transparent' }} onClick={onMenuClick}>
-        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-        </svg>
-      </button>
-      <div style={{ flex:1 }} />
-      <div style={{ fontSize:12, color:'var(--text3)', fontFamily:'JetBrains Mono, monospace' }}>
-        {new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
-      </div>
-    </div>
-  )
-}
-
-export default function DashboardLayout() {
+function DesktopLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   return (
     <div style={{ display:'flex', minHeight:'100vh' }}>
-      <div className="hidden md:block" style={{ flexShrink:0 }}>
+      <div style={{ flexShrink:0 }}>
         <Sidebar />
       </div>
-      {mobileOpen && (
-        <div style={{ position:'fixed', inset:0, zIndex:200 }}>
-          <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.5)' }} onClick={()=>setMobileOpen(false)} />
-          <Sidebar mobile onClose={()=>setMobileOpen(false)} />
-        </div>
-      )}
       <div style={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, overflow:'hidden' }}>
-        <div className="md:hidden"><Topbar onMenuClick={()=>setMobileOpen(true)} /></div>
         <main style={{ flex:1, overflowY:'auto', overflowX:'hidden' }}>
           <Outlet />
         </main>
       </div>
     </div>
   )
+}
+
+export default function DashboardLayout() {
+  const isMobile = useIsMobile(768)
+  return isMobile ? <MobileLayout /> : <DesktopLayout />
 }
