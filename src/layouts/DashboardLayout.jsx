@@ -3,6 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useTheme } from '../context/ThemeContext'
 import MobileLayout from './MobileLayout'
 import logo from '../assets/logo_1.png'
 
@@ -20,6 +21,7 @@ function Sidebar({ mobile, onClose }) {
   const { user, logout } = useAuth()
   const { info } = useToast()
   const navigate = useNavigate()
+  const { toggle, isDark } = useTheme()
 
   const handleLogout = () => {
     logout()
@@ -69,6 +71,9 @@ function Sidebar({ mobile, onClose }) {
             <div style={{ fontSize:13, fontWeight:600, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{user?.name || 'User'}</div>
             <div style={{ fontSize:11, color:'var(--text3)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{user?.email || ''}</div>
           </div>
+          <button onClick={toggle} title={isDark?'Mode jour':'Mode nuit'} style={{ padding:'5px 8px', background:'none', border:'none', cursor:'pointer', fontSize:14, borderRadius:7 }}>
+            {isDark ? '☀️' : '🌙'}
+          </button>
           <button className="btn btn-ghost btn-sm" style={{ padding:'5px 8px', border:'none' }} onClick={handleLogout} title="Logout">
             <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>

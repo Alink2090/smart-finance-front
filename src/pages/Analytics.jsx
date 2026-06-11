@@ -1,5 +1,4 @@
 /**
-import { useIsMobile } from '../hooks/useIsMobile'
  * Analytics.jsx — VERSION ALLÉGÉE
  *
  * AVANT : useFinanceCalcs() calculait tout côté front
@@ -17,6 +16,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, ReferenceLine,
 } from 'recharts'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const fmt     = n => `${new Intl.NumberFormat('fr-FR').format(Number(n) || 0)} FCFA`
 const fmtPct  = n => `${(n ?? 0).toFixed(1)}%`
@@ -126,8 +126,204 @@ export default function Analytics() {
   const chartData = metrics?.monthly_with_projection ?? monthly
 
   const isMobile = useIsMobile()
+
+  // ── Mobile render ──────────────────────────────────────────────────────────
+  if (isMobile) {
+    return (
+      <div className="fade-up" style={{ padding: 16 }}>
+
+        {/* Header */}
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:16 }}>
+          <div>
+            <div className="page-title">Analytics</div>
+            <div className="page-subtitle">Analyse de vos finances</div>
+          </div>
+        </div>
+
+        {/* Sélecteur période */}
+        <div style={{ display:'flex', gap:6, marginBottom:16, background:'var(--surface2)', borderRadius:12, padding:4, border:'1px solid var(--border)' }}>
+          {[{v:3,l:'3 mois'},{v:6,l:'6 mois'},{v:12,l:'1 an'}].map(o => (
+            <button key={o.v} onClick={()=>setPeriod(o.v)} style={{
+              flex:1, padding:'8px', border:'none', borderRadius:9, cursor:'pointer',
+              fontFamily:'inherit', fontSize:12, fontWeight:700, transition:'all .15s',
+              background: period===o.v ? 'rgba(124,108,252,.2)' : 'transparent',
+              color: period===o.v ? 'var(--accent2)' : 'var(--text3)',
+              boxShadow: period===o.v ? 'inset 0 0 0 1px rgba(124,108,252,.3)' : 'none',
+            }}>{o.l}</button>
+          ))}
+        </div>
+
+        {err && <div className="error-box" style={{ marginBottom:14, fontSize:13 }}>{err}</div>}
+
+        {/* KPI grid 2×2 */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
+          {[
+            { label:"Revenus",        value: fmt(dashboard?.total_income),     color:'#22d3a0' },
+            { label:"Dépenses",       value: fmt(dashboard?.total_expenses),   color:'#f5476a' },
+            { label:"Taux d'épargne", value: fmtPct(dashboard?.savings_rate), color:'#7c6cfc' },
+            { label:"Ratio dép.",     value: fmtPct(dashboard?.expense_ratio),color:'#f59e0b' },
+          ].map((s,i) => (
+            <div key={i} className="card" style={{ padding:'14px', borderLeft:`2px solid ${s.color}` }}>
+              {loading
+                ? <><div className="skeleton" style={{height:11,width:'60%',marginBottom:8,borderRadius:6}}/><div className="skeleton" style={{height:20,width:'80%',borderRadius:6}}/></>
+                : <>
+                    <div style={{fontSize:10,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>{s.label}</div>
+                    <div style={{fontSize:18,fontWeight:800,color:s.color,fontFamily:'JetBrains Mono,monospace',letterSpacing:'-.02em',lineHeight:1}}>{s.value}</div>
+                  </>
+              }
+            </div>
+          ))}
+        </div>
+
+        {/* Chart principal */}
+        <div className="card" style={{ padding:16, marginBottom:12 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+            <div style={{fontSize:14,fontWeight:700,color:'var(--text)'}}>Évolution mensuelle</div>
+            <div style={{ display:'flex', background:'var(--surface2)', borderRadius:7, border:'1px solid var(--border)', overflow:'hidden' }}>
+              {[['area','∿'],['bar','▬']].map(([v,ic]) => (
+                <button key={v} onClick={()=>setChartType(v)} style={{
+                  padding:'5px 10px', border:'none', cursor:'pointer', fontFamily:'inherit', fontSize:13,
+                  background: chartType===v ? 'rgba(124,108,252,.2)' : 'transparent',
+                  color: chartType===v ? 'var(--accent2)' : 'var(--text3)', transition:'all .15s',
+                }}>{ic}</button>
+              ))}
+            </div>
+          </div>
+          {loading ? <Sk h={160} /> : monthly.length === 0
+            ? <div style={{height:160,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text3)',fontSize:13}}>Pas encore de données</div>
+            : <ResponsiveContainer width="100%" height={160}>
+                {chartType === 'area' ? (
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="gIncM" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#7c6cfc" stopOpacity={0.2}/>
+                        <stop offset="100%" stopColor="#7c6cfc" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="gExpM" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f5476a" stopOpacity={0.15}/>
+                        <stop offset="100%" stopColor="#f5476a" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.04)" vertical={false}/>
+                    <XAxis dataKey="month" tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false}/>
+                    <YAxis tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} tickFormatter={fmtAxis} width={34}/>
+                    <Tooltip content={<ChartTooltip/>}/>
+                    <Area type="monotone" dataKey="income"   stroke="#7c6cfc" strokeWidth={2} fill="url(#gIncM)" name="Revenus"  dot={false} activeDot={{r:4}}/>
+                    <Area type="monotone" dataKey="expenses" stroke="#f5476a" strokeWidth={2} fill="url(#gExpM)" name="Dépenses" dot={<ProjectionDot/>} activeDot={{r:4}}/>
+                  </AreaChart>
+                ) : (
+                  <BarChart data={monthly} barSize={10} barGap={3}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.04)" vertical={false}/>
+                    <XAxis dataKey="month" tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false}/>
+                    <YAxis tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} tickFormatter={fmtAxis} width={34}/>
+                    <Tooltip content={<ChartTooltip/>}/>
+                    <Bar dataKey="income"   fill="#7c6cfc" name="Revenus"  radius={[3,3,0,0]}/>
+                    <Bar dataKey="expenses" fill="#f5476a" name="Dépenses" radius={[3,3,0,0]}/>
+                  </BarChart>
+                )}
+              </ResponsiveContainer>
+          }
+        </div>
+
+        {/* Répartition catégories */}
+        {!loading && pieData.length > 0 && (
+          <div className="card" style={{ padding:16, marginBottom:12 }}>
+            <div style={{fontSize:14,fontWeight:700,color:'var(--text)',marginBottom:12}}>Par catégorie</div>
+            <div style={{ display:'flex', gap:12, alignItems:'center', marginBottom:12 }}>
+              <ResponsiveContainer width={100} height={100}>
+                <PieChart>
+                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={28} outerRadius={48} paddingAngle={2} dataKey="value">
+                    {pieData.map((d,i) => <Cell key={i} fill={d.color}/>)}
+                  </Pie>
+                  <Tooltip formatter={v=>[fmt(v),'Montant']} contentStyle={{background:'var(--surface2)',border:'1px solid var(--border2)',borderRadius:8,fontSize:12}}/>
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{flex:1,display:'flex',flexDirection:'column',gap:6}}>
+                {pieData.slice(0,4).map((d,i) => (
+                  <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <span style={{width:6,height:6,borderRadius:'50%',background:d.color,display:'inline-block',flexShrink:0}}/>
+                      <span style={{fontSize:11,color:'var(--text2)'}}>{d.name}</span>
+                    </div>
+                    <span style={{fontSize:11,fontWeight:700,color:'var(--text)',fontFamily:'JetBrains Mono,monospace'}}>
+                      {totalCatExp > 0 ? `${((d.value/totalCatExp)*100).toFixed(0)}%` : '—'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {pieData.map((d,i) => (
+              <div key={i} style={{marginBottom:8}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                  <span style={{fontSize:12,color:'var(--text2)'}}>{d.name}</span>
+                  <span style={{fontSize:12,fontWeight:700,color:'var(--text)',fontFamily:'JetBrains Mono,monospace'}}>{fmt(d.value)}</span>
+                </div>
+                <div className="progress" style={{height:4}}>
+                  <div className="progress-fill" style={{width:totalCatExp>0?`${(d.value/totalCatExp)*100}%`:'0%',height:'100%',background:d.color}}/>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Comparaison mois */}
+        {!loading && metrics?.curr && metrics?.prev && (
+          <div className="card" style={{ padding:16, marginBottom:12 }}>
+            <div style={{fontSize:14,fontWeight:700,color:'var(--text)',marginBottom:12}}>
+              Comparaison {metrics.prev.month} → {metrics.curr.month}
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              {[
+                {label:'Revenus',  curr:metrics.curr.income??0,   prev:metrics.prev.income??0,   good:true},
+                {label:'Dépenses', curr:metrics.curr.expenses??0, prev:metrics.prev.expenses??0, good:false},
+                {label:'Épargne',  curr:(metrics.curr.income??0)-(metrics.curr.expenses??0), prev:(metrics.prev.income??0)-(metrics.prev.expenses??0), good:true},
+              ].map((row,i) => {
+                const delta = row.prev>0 ? ((row.curr-row.prev)/row.prev)*100 : 0
+                const up    = delta>0
+                const isGood = row.good ? up : !up
+                return (
+                  <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'var(--surface2)',borderRadius:12,border:'1px solid var(--border)'}}>
+                    <span style={{fontSize:13,color:'var(--text2)',fontWeight:500}}>{row.label}</span>
+                    <div style={{textAlign:'right'}}>
+                      <div style={{fontSize:14,fontWeight:800,color:'var(--text)',fontFamily:'JetBrains Mono,monospace'}}>{fmt(row.curr)}</div>
+                      {row.prev>0 && <div style={{fontSize:11,color:isGood?'#22d3a0':'#f5476a',fontWeight:600,marginTop:1}}>{up?'↑':'↓'} {Math.abs(delta).toFixed(1)}%</div>}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Métriques avancées */}
+        {!loading && metrics && (
+          <div className="card" style={{ padding:16 }}>
+            <div style={{fontSize:14,fontWeight:700,color:'var(--text)',marginBottom:12}}>Métriques avancées</div>
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              {[
+                metrics.avg_monthly_expense && { label:'Moy. mensuelle dép.', value:fmt(metrics.avg_monthly_expense), color:'var(--text)' },
+                metrics.projection_next_expense!=null && { label:'Projection M+1', value:fmt(metrics.projection_next_expense), color:'#f59e0b' },
+                metrics.worst_month?.month && { label:'Mois le + chargé', value:metrics.worst_month.month, sub:fmt(metrics.worst_month.expenses), color:'#f59e0b' },
+                metrics.anomaly && { label:'🔥 Anomalie détectée', value:metrics.anomaly.month, sub:`+${metrics.anomaly.deviation_pct?.toFixed(0)}% vs moy.`, color:'#f5476a' },
+              ].filter(Boolean).map((item,i) => (
+                <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px',background:'var(--surface2)',borderRadius:12,border:'1px solid var(--border)'}}>
+                  <span style={{fontSize:12,color:'var(--text3)',fontWeight:500,flex:1}}>{item.label}</span>
+                  <div style={{textAlign:'right'}}>
+                    <div style={{fontSize:13,fontWeight:800,color:item.color,fontFamily:'JetBrains Mono,monospace'}}>{item.value}</div>
+                    {item.sub && <div style={{fontSize:11,color:'var(--text3)',marginTop:1}}>{item.sub}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // ── Desktop render ─────────────────────────────────────────────────────────
   return (
-    <div className="fade-up" style={{ padding: isMobile ? 16 : 24 }}>
+    <div className="fade-up" style={{ padding: 24 }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
