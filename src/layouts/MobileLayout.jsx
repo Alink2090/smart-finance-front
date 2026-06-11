@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { useTheme } from '../context/ThemeContext'
 import logo from '../assets/logo_1.png'
+import OfflineBanner  from '../components/offline/OfflineBanner'
+import SyncIndicator  from '../components/offline/SyncIndicator'
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 const icons = {
@@ -55,6 +57,7 @@ const MORE_ITEMS = [
   { to: '/insights',   label: 'Insights',   emoji: '💡', sub: 'Alertes & conseils' },
   { to: '/reports',    label: 'Rapports',   emoji: '📄', sub: 'Export CSV / PDF' },
   { to: '/categories', label: 'Catégories', emoji: '🏷️', sub: 'Gérer les catégories' },
+  { to: '/settings',   label: 'Paramètres',  emoji: '⚙️', sub: 'PIN, sync & offline' },
 ]
 
 // ── Header ───────────────────────────────────────────────────────────────────
@@ -395,6 +398,7 @@ export default function MobileLayout() {
         // Espace pour la bottom nav + safe area bottom
         paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
       }}>
+        <OfflineBanner />
         <Outlet />
       </main>
 

@@ -750,3 +750,28 @@ body {
 }
 [data-theme="light"] .spinner { border-color: rgba(0,0,0,.12); border-top-color: var(--accent); }
 [data-theme="light"] .error-box { background: rgba(220,50,80,.07) !important; border-color: rgba(220,50,80,.15) !important; }
+
+/* ── Offline system animations ───────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideDown {
+  from { opacity: 0; max-height: 0; }
+  to   { opacity: 1; max-height: 80px; }
+}
+
+/* Sync indicator spinner override */
+.spinner {
+  display: inline-block;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.15);
+  border-top-color: var(--accent);
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Offline banner sticky */
+[data-offline-banner] {
+  animation: fadeIn .25s ease;
+}
