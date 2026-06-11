@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+import { useServiceWorker } from './hooks/useServiceWorker'
 import DashboardLayout from './layouts/DashboardLayout'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -11,6 +12,7 @@ import Categories from './pages/Categories'
 import Insights from './pages/Insights'
 import Reports from './pages/Reports'
 import InstallButton from './components/InstallButton'
+import UpdateBanner from './components/UpdateBanner'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -32,9 +34,20 @@ function PublicRoute({ children }) {
 }
 
 export default function App() {
+  const { needRefresh, applyUpdate, dismissUpdate } = useServiceWorker()
+
   return (
     <>
       <InstallButton />
+
+      {/* Bannière mise à jour SW — visible globalement, desktop + mobile */}
+      {needRefresh && (
+        <UpdateBanner
+          onUpdate={applyUpdate}
+          onDismiss={dismissUpdate}
+        />
+      )}
+
       <Routes>
         <Route path="/login"    element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
@@ -47,7 +60,6 @@ export default function App() {
           <Route path="/insights"     element={<Insights />} />
           <Route path="/reports"      element={<Reports />} />
           <Route path="/categories"   element={<Categories />} />
-          {/* /more route: redirect mobile "plus" tab to insights as default */}
           <Route path="/more"         element={<Navigate to="/insights" replace />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

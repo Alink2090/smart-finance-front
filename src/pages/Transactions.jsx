@@ -33,8 +33,8 @@ function applyFilters(txs, f) {
     r = r.filter(t => (t.title ?? '').toLowerCase().includes(q) || (t.notes ?? '').toLowerCase().includes(q))
   }
   if (f.type !== 'all')   r = r.filter(t => t.type === f.type)
-  if (f.income_category)  r = r.filter(t => String(t.income_category) === f.income_category || String(t.income_category?.id) === f.income_category)
-  if (f.expense_category) r = r.filter(t => String(t.expense_category) === f.expense_category || String(t.expense_category?.id) === f.expense_category)
+  if (f.income_category)  r = r.filter(t => t.income_category === f.income_category || String(t.income_category_id) === f.income_category)
+  if (f.expense_category) r = r.filter(t => t.expense_category === f.expense_category || String(t.expense_category_id) === f.expense_category)
   if (f.dateFrom)         r = r.filter(t => t.date && t.date >= f.dateFrom)
   if (f.dateTo)           r = r.filter(t => t.date && t.date <= f.dateTo)
   if (f.amountMin !== '') r = r.filter(t => (t.amount ?? 0) >= parseFloat(f.amountMin))
