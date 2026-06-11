@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useIsMobile } from '../hooks/useIsMobile'
 import { createPortal } from 'react-dom'
 import { budgetsAPI, categoriesAPI } from '../services/api'
 import { useToast } from '../context/ToastContext'
 import { useAuth } from '../context/AuthContext'
+import { useBreakpoint } from '../hooks/useBreakpoint'
 
 const fmt  = n => `${new Intl.NumberFormat('fr-FR').format(Number(n) || 0)} FCFA`
 const fmtD = d => d ? new Date(d+'T00:00').toLocaleDateString('fr-FR',{ day:'numeric', month:'short' }) : '—'
@@ -577,66 +577,63 @@ function GlobalSavingCard({ b, onEdit, onDelete, idx }) {
 
 // ── Page principale ───────────────────────────────────────────────────────────
 export default function Budgets() {
+  const { isMobile } = useBreakpoint()
   const { user } = useAuth()
   const { success, error: toastErr } = useToast()
-  const isMobile = useIsMobile()
 
-  const [budgets, setBudgets] = useState([])
-  const [categories, setCategories] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [err, setErr] = useState(null)
-
-  const [mainTab, setMainTab] = useState('budget')
-  const [subTab, setSubTab] = useState('active')
-  const [search, setSearch] = useState('')
-  const [filterCat, setFilterCat] = useState('')
-  const [sortBy, setSortBy] = useState('status')
-  const [viewMode, setViewMode] = useState('grid')
-
-  const [showForm, setShowForm] = useState(false)
-  const [editItem, setEditItem] = useState(null)
-  const [defaultType, setDefaultType] = useState('budget')
+  const [budgets,       setBudgets]       = useState([])
+  const [categories,    setCategories]    = useState([])
+  const [loading,       setLoading]       = useState(true)
+  const [err,           setErr]           = useState(null)
+  const [showForm,      setShowForm]      = useState(false)
+  const [editItem,      setEditItem]      = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [defaultType,   setDefaultType]   = useState('budget')
+  const [mainTab,       setMainTab]       = useState('budget')
+  const [subTab,        setSubTab]        = useState('active')
+  const [viewMode,      setViewMode]      = useState('grid')
+  const [search,        setSearch]        = useState('')
+  const [filterCat,     setFilterCat]     = useState('')
+  const [sortBy,        setSortBy]        = useState('status')
+
 
   const load = useCallback(async () => {
     if (!user?.id) return
     setLoading(true); setErr(null)
     try {
-      const [bRes, cRes] = await Promise.all([
-        budgetsAPI.getAll(user.id),
-        categoriesAPI.getAll(user.id)
-      ])
+      const [bRes, cRes] = await Promise.all([budgetsAPI.getAll(user.id), categoriesAPI.getAll(user.id)])
       setBudgets(Array.isArray(bRes) ? bRes : (bRes?.data ?? bRes?.budgets ?? []))
       setCategories(Array.isArray(cRes) ? cRes : (cRes?.data ?? cRes?.categories ?? []))
-    } catch (error) { setErr(error.message) }
+    } catch(e) { setErr(e.message) }
     finally { setLoading(false) }
   }, [user?.id])
 
   useEffect(() => { load() }, [load])
 
-  const handleSave = async (data) => {
+  const handleSave = async data => {
     try {
       if (editItem) {
-        await budgetsAPI.update(editItem.id, { user_id: user.id, ...data })
-        success('Enveloppe mise à jour')
+        await budgetsAPI.update(editItem.id, { user_id:user.id, ...data })
+        success('Mis à jour')
       } else {
-        await budgetsAPI.create({ user_id: user.id, ...data })
-        success('Enveloppe créée')
+        await budgetsAPI.create({ user_id:user.id, ...data })
+        success(data.budget_type==='saving_global' ? '🌍 Épargne globale créée !' : data.budget_type==='saving' ? '🏦 Épargne créée !' : '💸 Budget créé !')
+
       }
       setShowForm(false); setEditItem(null); load()
-    } catch (e) { toastErr(e.message) }
+    } catch(e) { toastErr(e.message) }
   }
 
   const handleDelete = async () => {
     try {
       await budgetsAPI.delete(confirmDelete, user.id)
-      success('Enveloppe supprimée')
+      success('Supprimé')
       setConfirmDelete(null); load()
-    } catch (e) { toastErr(e.message) }
+    } catch(e) { toastErr(e.message) }
   }
 
-  const openNew = (type) => { setDefaultType(type); setEditItem(null); setShowForm(true) }
-  const openEdit = (b) => { setEditItem(b); setShowForm(true) }
+  const openNew  = type => { setDefaultType(type); setEditItem(null); setShowForm(true) }
+  const openEdit = item => { setEditItem(item); setDefaultType(item.budget_type ?? 'budget'); setShowForm(true) }
 
   const allBudgets      = useMemo(() => budgets.filter(b=>(b.budget_type??'budget')==='budget').map(b=>({...b,_status:getStatus(b)})), [budgets])
   const allSavings      = useMemo(() => budgets.filter(b=>b.budget_type==='saving').map(b=>({...b,_status:getStatus(b)})), [budgets])
@@ -697,181 +694,13 @@ export default function Budgets() {
   const MAIN_TABS = [
     { key:'budget',        label:'💸 Budgets',        count:allBudgets.length,      color:'#7c6cfc' },
     { key:'saving',        label:'🏦 Épargnes',        count:allSavings.length,      color:'#22d3a0' },
-    { key:'saving_global', label:'🌍 Global',          count:allGlobalSaving.length, color:'#a78bfa' },
+    { key:'saving_global', label:'🌍 Épargne globale', count:allGlobalSaving.length, color:'#a78bfa' },
   ]
 
-  const activeColor = MAIN_TABS.find(t=>t.key===mainTab)?.color ?? '#7c6cfc'
-
-  // ── Mobile render ───────────────────────────────────────────────────────────
-  if (isMobile) {
-    return (
-      <div className="fade-up" style={{ padding:16 }}>
-
-        {/* Header */}
-        <div style={{ marginBottom:14 }}>
-          <div className="page-title">Budgets & Épargne</div>
-          <div className="page-subtitle">Gérez vos enveloppes et objectifs</div>
-        </div>
-
-        {/* Main tabs — scroll horizontal */}
-        <div style={{ display:'flex', overflowX:'auto', gap:8, marginBottom:14, paddingBottom:4, scrollbarWidth:'none' }}>
-          {MAIN_TABS.map(tab => (
-            <button key={tab.key} onClick={()=>{ setMainTab(tab.key); setSubTab('active') }} style={{
-              flexShrink:0, padding:'8px 16px', border:`1px solid ${mainTab===tab.key?tab.color+'44':'var(--border)'}`,
-              borderRadius:100, cursor:'pointer', fontFamily:'inherit', fontSize:12, fontWeight:700,
-              background:mainTab===tab.key?`${tab.color}15`:'transparent',
-              color:mainTab===tab.key?tab.color:'var(--text2)', transition:'all .15s',
-              display:'flex', alignItems:'center', gap:6,
-            }}>
-              {tab.label}
-              <span style={{ fontSize:10, padding:'1px 6px', borderRadius:100, background:'var(--surface2)', color:'var(--text3)' }}>{tab.count}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* KPI row — scroll horizontal */}
-        {!loading && currentList.length > 0 && (
-          <div style={{ display:'flex', overflowX:'auto', gap:8, marginBottom:14, paddingBottom:4, scrollbarWidth:'none' }}>
-            {[
-              { label:mainTab==='budget'?'Total budget':'Total objectif', value:fmt(kpis.total), color:activeColor },
-              { label:mainTab==='budget'?'Dépensé':'Épargné', value:fmt(kpis.spent), color:mainTab==='budget'?'#f5476a':'#22d3a0' },
-              { label:'Restant', value:fmt(kpis.total-kpis.spent), color:(kpis.total-kpis.spent)>=0?'#22d3a0':'#f5476a' },
-              { label:'Actifs', value:String(kpis.active), color:'#22d3a0' },
-            ].map((s,i)=>(
-              <div key={i} style={{ flexShrink:0, padding:'10px 14px', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:12, minWidth:80 }}>
-                <div style={{ fontSize:9, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:4, whiteSpace:'nowrap' }}>{s.label}</div>
-                <div style={{ fontSize:14, fontWeight:800, color:s.color, letterSpacing:'-.02em' }}>{s.value}</div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Sub-tabs */}
-        <div style={{ display:'flex', overflowX:'auto', gap:6, marginBottom:14, paddingBottom:4, scrollbarWidth:'none' }}>
-          {SUB_TABS.map(tab => {
-            const count = tabCounts[tab.key]
-            const active = subTab===tab.key
-            return (
-              <button key={tab.key} onClick={()=>setSubTab(tab.key)} style={{
-                flexShrink:0, padding:'6px 12px', border:`1px solid ${active?activeColor+'44':'var(--border)'}`,
-                borderRadius:100, cursor:'pointer', fontFamily:'inherit', fontSize:11, fontWeight:active?700:500,
-                background:active?`${activeColor}15`:'transparent', color:active?activeColor:'var(--text2)', transition:'all .15s',
-              }}>
-                {tab.label}
-                {count>0 && <span style={{ marginLeft:4, fontSize:10, color:active?activeColor:'var(--text3)' }}>{count}</span>}
-              </button>
-            )
-          })}
-        </div>
-
-        {err && <div className="error-box" style={{ marginBottom:12, fontSize:13 }}>{err}</div>}
-
-        {/* Liste mobile */}
-        {loading ? (
-          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-            {[1,2,3].map(i=><div key={i} className="skeleton" style={{ height:130, borderRadius:14 }}/>)}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div style={{ padding:'48px 0', textAlign:'center', color:'var(--text3)' }}>
-            <div style={{ fontSize:44, marginBottom:10 }}>{mainTab==='saving_global'?'🌍':mainTab==='saving'?'🏦':'🎯'}</div>
-            <div style={{ fontSize:15, fontWeight:600, marginBottom:4, color:'var(--text2)' }}>Aucun élément</div>
-            <div style={{ fontSize:13, marginBottom:20 }}>Créez votre première enveloppe.</div>
-            <button onClick={()=>openNew(mainTab)} style={{
-              padding:'12px 24px', border:'none', borderRadius:12, cursor:'pointer',
-              fontFamily:'inherit', fontWeight:700, fontSize:14, color:'white',
-              background:mainTab==='saving_global'?'linear-gradient(135deg,#a78bfa,#7c3aed)':mainTab==='saving'?'linear-gradient(135deg,#22d3a0,#059669)':'linear-gradient(135deg,#7c6cfc,#5b4de8)'
-            }}>
-              {mainTab==='saving_global'?'🌍 Créer': mainTab==='saving' ? '🏦 Créer' : '💸 Créer' }
-            </button>
-          </div>
-        ) : (
-          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-            {filtered.map((b,i) => {
-              const catObj   = b.category&&typeof b.category==='object'?b.category:categories.find(c=>String(c.id)===String(b.category_id))
-              const catColor = catObj?.color ?? activeColor
-              const limit    = Math.max(Number(b.limit_amount)||0, Number(b.target_amount)||0)
-              const spent    = b.spent_amount??b.saved_amount??0
-              const pct      = limit>0?Math.min((spent/limit)*100,100):0
-              const dl       = getDaysLeft(b.end_date)
-              const isSaving = b.budget_type==='saving'||b.budget_type==='saving_global'
-
-              return (
-                <div key={b.id} className="card slide-right" style={{ padding:16, animationDelay:`${i*.03}s` }}>
-                  <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:10 }}>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-                        <span style={{ width:8, height:8, borderRadius:'50%', background:catColor, display:'inline-block', flexShrink:0 }} />
-                        <span style={{ fontSize:14, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                          {b.name || catObj?.name || `#${b.id}`}
-                        </span>
-                        <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:100, background:b._status.bg, color:b._status.color, flexShrink:0 }}>
-                          {b._status.icon} {b._status.label}
-                        </span>
-                      </div>
-                      {catObj && mainTab!=='saving_global' && (
-                        <div style={{ fontSize:11, color:'var(--text3)', marginLeft:16 }}>{catObj.name}</div>
-                      )}
-                    </div>
-                    <div style={{ display:'flex', gap:4, flexShrink:0, marginLeft:8 }}>
-                      <button className="btn btn-ghost btn-sm" style={{ padding:'5px 7px' }} onClick={()=>openEdit(b)}>
-                        <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      </button>
-                      <button className="btn btn-danger btn-sm" style={{ padding:'5px 7px' }} onClick={()=>setConfirmDelete(b.id)}>
-                        <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div style={{ marginBottom:8 }}>
-                    <div className="progress" style={{ height:7, borderRadius:100 }}>
-                      <div className="progress-fill" style={{
-                        width:`${pct}%`, height:'100%', borderRadius:100,
-                        background: !isSaving&&spent>limit?'#f5476a':b.budget_type==='saving_global'?'linear-gradient(90deg,#a78bfa,#c4b5fd)':isSaving?'linear-gradient(90deg,#22d3a0,#34d399)':`linear-gradient(90deg,${catColor},${catColor}88)`,
-                      }}/>
-                    </div>
-                  </div>
-
-                  {/* Amounts row */}
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                    <div>
-                      <span style={{ fontSize:12, color:'var(--text3)' }}>{isSaving?'Épargné':'Dépensé'}: </span>
-                      <span style={{ fontSize:13, fontWeight:700, color:isSaving?'#22d3a0':spent>limit?'#f5476a':'var(--text)', fontFamily:'JetBrains Mono,monospace' }}>{fmt(spent)}</span>
-                      <span style={{ fontSize:11, color:'var(--text3)' }}> / {fmt(limit)}</span>
-                    </div>
-                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                      <span style={{ fontSize:12, fontWeight:700, color:pct>=80&&!isSaving?'#f59e0b':'var(--text3)' }}>{pct.toFixed(0)}%</span>
-                      {dl!==null && (
-                        <span style={{ fontSize:11, color:dl<=3?'#f59e0b':'var(--text3)', fontFamily:'JetBrains Mono,monospace' }}>
-                          {dl<=0?'Terminé':`${dl}j`}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-
-        {/* FAB */}
-        <button className="fab" onClick={()=>openNew(mainTab)} aria-label={`Créer ${mainTab==='budget'?'un budget':'une épargne'}`}>
-          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-        </button>
-
-        {(showForm||editItem) && (
-          <BudgetForm categories={categories} initial={editItem} defaultType={defaultType} onSave={handleSave} onCancel={()=>{setShowForm(false);setEditItem(null)}}/>
-        )}
-        {confirmDelete && <ConfirmModal onConfirm={handleDelete} onCancel={()=>setConfirmDelete(null)}/>}
-      </div>
-    )
-  }
-
-  // ── Desktop render ──────────────────────────────────────────────────────────
   return (
     <div className="fade-up" style={{ padding:24 }}>
+
+      {/* Header */}
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:20, flexWrap:'wrap', gap:12 }}>
         <div>
           <div className="page-title">Budgets & Épargne</div>
@@ -898,6 +727,7 @@ export default function Budgets() {
         </div>
       </div>
 
+      {/* Main tabs */}
       <div style={{ display:'flex', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:14, padding:4, marginBottom:20, gap:4 }}>
         {MAIN_TABS.map(tab=>(
           <button key={tab.key} onClick={()=>{ setMainTab(tab.key); setSubTab('active') }} style={{
@@ -912,16 +742,16 @@ export default function Budgets() {
           </button>
         ))}
       </div>
-
+      {/* KPIs */}
       {!loading && currentList.length > 0 && (
         <div style={{ display:'flex', gap:10, marginBottom:20, flexWrap:'wrap' }}>
           {[
-            { label: mainTab==='budget'?'Budget total':'Total objectifs', value:fmt(kpis.total), color:MAIN_TABS.find(t=>t.key===mainTab)?.color??'var(--accent2)' },
-            { label: mainTab==='budget'?'Dépensé':'Épargné', value:fmt(kpis.spent), color: mainTab==='budget'?'#f5476a':'#22d3a0' },
-            { label:'Restant', value:fmt(kpis.total-kpis.spent), color:(kpis.total-kpis.spent)>=0?'#22d3a0':'#f5476a' },
-            { label:'En cours', value:String(kpis.active), color:'#22d3a0' },
+            { label: mainTab==='budget'?'Budget total':'Total objectifs', value:fmt(kpis.total),                   color:MAIN_TABS.find(t=>t.key===mainTab)?.color??'var(--accent2)' },
+            { label: mainTab==='budget'?'Dépensé':'Épargné',              value:fmt(kpis.spent),                   color: mainTab==='budget'?'#f5476a':'#22d3a0' },
+            { label:'Restant',    value:fmt(kpis.total-kpis.spent),        color:(kpis.total-kpis.spent)>=0?'#22d3a0':'#f5476a' },
+            { label:'En cours',   value:String(kpis.active),               color:'#22d3a0' },
             ...(mainTab==='budget' ? [{ label:'Dépassés', value:String(kpis.over), color:'#f5476a' }] : [{ label:'À venir', value:String(kpis.upcoming), color:'#38bdf8' }]),
-            { label:'Terminés', value:String(kpis.done), color:'var(--text3)' },
+            { label:'Terminés',   value:String(kpis.done),                 color:'var(--text3)' },
           ].map((s,i)=>(
             <div key={i} className="card" style={{ flex:'1 1 90px', padding:'12px 14px' }}>
               <div style={{ fontSize:10, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:4, whiteSpace:'nowrap' }}>{s.label}</div>
@@ -931,11 +761,12 @@ export default function Budgets() {
         </div>
       )}
 
+      {/* Sub-tabs + filtres */}
       <div style={{ display:'flex', gap:4, marginBottom:16, flexWrap:'wrap', borderBottom:'1px solid var(--border)', paddingBottom:12 }}>
         {SUB_TABS.map(tab=>{
-          const count = tabCounts[tab.key]
-          const active = subTab===tab.key
-          const accent = MAIN_TABS.find(t=>t.key===mainTab)?.color ?? '#a78bfa'
+          const count   = tabCounts[tab.key]
+          const active  = subTab===tab.key
+          const accent  = MAIN_TABS.find(t=>t.key===mainTab)?.color ?? '#a78bfa'
           return (
             <button key={tab.key} onClick={()=>setSubTab(tab.key)} style={{
               display:'flex', alignItems:'center', gap:6, padding:'6px 14px',
@@ -981,12 +812,17 @@ export default function Budgets() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="card" style={{ padding:'60px 20px', textAlign:'center', color:'var(--text3)' }}>
-          <div style={{ fontSize:44, marginBottom:14 }}>{mainTab==='saving_global'?'🌍':mainTab==='saving'?'🏦':'🎯'}</div>
-          <div style={{ fontSize:15, fontWeight:600, marginBottom:8, color:'var(--text2)' }}>Aucun élément</div>
-          <div style={{ fontSize:13, marginBottom:22 }}>Créez votre première enveloppe.</div>
+          <div style={{ fontSize:44, marginBottom:14 }}>{search||filterCat?'🔍':mainTab==='saving_global'?'🌍':mainTab==='saving'?'🏦':'🎯'}</div>
+          <div style={{ fontSize:15, fontWeight:600, marginBottom:8, color:'var(--text2)' }}>
+            {search||filterCat?'Aucun résultat':`Aucun${mainTab==='saving_global'?" objectif d'épargne globale":mainTab==='saving'?" objectif d'épargne":' budget'}`}
+          </div>
+          <div style={{ fontSize:13, marginBottom:22 }}>{search||filterCat?'Modifiez vos filtres.':'Créez votre première enveloppe.'}</div>
           {!search&&!filterCat && (
-            <button onClick={()=>openNew(mainTab)} style={{ padding:'10px 20px', border:'none', borderRadius:10, cursor:'pointer', fontFamily:'inherit', fontWeight:700, fontSize:14, color:'white', background:mainTab==='saving_global'?'linear-gradient(135deg,#a78bfa,#7c3aed)':mainTab==='saving'?'linear-gradient(135deg,#22d3a0,#059669)':'linear-gradient(135deg,#7c6cfc,#5b4de8)' }}>
-              Créer
+            <button onClick={()=>openNew(mainTab)} style={{
+              padding:'10px 20px', border:'none', borderRadius:10, cursor:'pointer', fontFamily:'inherit', fontWeight:700, fontSize:14, color:'white',
+              background: mainTab==='saving_global'?'linear-gradient(135deg,#a78bfa,#7c3aed)':mainTab==='saving'?'linear-gradient(135deg,#22d3a0,#059669)':'linear-gradient(135deg,#7c6cfc,#5b4de8)',
+            }}>
+              {mainTab==='saving_global'?"🌍 Créer une épargne globale":mainTab==='saving'?'🏦 Créer une épargne':'💸 Créer un budget'}
             </button>
           )}
         </div>
@@ -1006,6 +842,7 @@ export default function Budgets() {
             <table style={{ width:'100%', borderCollapse:'collapse', minWidth:680 }}>
               <thead>
                 <tr style={{ borderBottom:'1px solid var(--border)' }}>
+
                   {['Nom','Catégorie','Période',mainTab==='budget'?'Limite':'Objectif',mainTab==='budget'?'Dépensé':'Épargné','Progression','Échéance','Statut',''].map(h=>(
                     <th key={h} style={{ padding:'11px 14px', textAlign:'left', fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.05em', whiteSpace:'nowrap' }}>{h}</th>
                   ))}
@@ -1013,23 +850,29 @@ export default function Budgets() {
               </thead>
               <tbody>
                 {filtered.map((b,i)=>{
-                  const catObj = b.category&&typeof b.category==='object'?b.category:categories.find(c=>String(c.id)===String(b.category))
-                  const catColor = catObj?.color ?? activeColor
-                  const limit = Math.max(Number(b.limit_amount)||0, Number(b.target_amount)||0)
-                  const catName = b.category
-                  const spent = b.spent_amount??b.saved_amount??0
-                  const pct = limit>0?Math.min((spent/limit)*100,100):0
-                  const dl = getDaysLeft(b.end_date)
+                  const catObj   = b.category&&typeof b.category==='object'?b.category:categories.find(c=>String(c.id)===String(b.category))
+                  const catColor = catObj?.color ?? (mainTab==='budget'?'#7c6cfc':mainTab==='saving'?'#22d3a0':'#a78bfa')
+                  const limit    = Math.max(Number(b.limit_amount)||0, Number(b.target_amount)||0)
+                  const catName  = b.category
+                  const spent    = b.spent_amount??b.saved_amount??0
+                  const pct      = limit>0?Math.min((spent/limit)*100,100):0
+                  const dl       = getDaysLeft(b.end_date)
                   return (
                     <tr key={b.id} className="table-row slide-right" style={{ animationDelay:`${i*.03}s` }}>
                       <td style={{ padding:'11px 14px', fontSize:13, fontWeight:600, color:'var(--text)' }}>{b.name||catObj?.name||`#${b.id}`}</td>
                       <td style={{ padding:'11px 14px' }}>
-                        {mainTab==='saving_global'
-                          ? <span style={{ fontSize:11, color:'#a78bfa', fontWeight:600 }}>Tous revenus{b.savings_pct?` · ${b.savings_pct}%`:''}</span>
-                          : <div style={{ display:'flex', alignItems:'center', gap:6 }}><span style={{ width:7, height:7, borderRadius:'50%', background:catColor, display:'inline-block' }}/><span style={{ fontSize:12, color:'var(--text2)' }}>{catName??'—'}</span></div>
-                        }
+                        {mainTab==='saving_global' ? (
+                          <span style={{ fontSize:11, color:'#a78bfa', fontWeight:600 }}>Tous revenus{b.savings_pct?` · ${b.savings_pct}%`:''}</span>
+                        ) : (
+                          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                            <span style={{ width:7, height:7, borderRadius:'50%', background:catColor, display:'inline-block' }}/>
+                            <span style={{ fontSize:12, color:'var(--text2)' }}>{catName??'—'}</span>
+                          </div>
+                        )}
                       </td>
-                      <td style={{ padding:'11px 14px', fontSize:11, color:'var(--text3)', fontFamily:'JetBrains Mono,monospace', whiteSpace:'nowrap' }}>{b.start_date?`${fmtD(b.start_date)} → ${fmtD(b.end_date)}`:'—'}</td>
+                      <td style={{ padding:'11px 14px', fontSize:11, color:'var(--text3)', fontFamily:'JetBrains Mono,monospace', whiteSpace:'nowrap' }}>
+                        {b.start_date?`${fmtD(b.start_date)} → ${fmtD(b.end_date)}`:'—'}
+                      </td>
                       <td style={{ padding:'11px 14px', fontSize:13, fontWeight:700, color:'var(--text)', fontFamily:'JetBrains Mono,monospace' }}>{fmt(limit)}</td>
                       <td style={{ padding:'11px 14px', fontSize:13, fontWeight:700, fontFamily:'JetBrains Mono,monospace', color:mainTab==='budget'&&spent>limit?'#f5476a':mainTab!=='budget'?'#22d3a0':'var(--text)' }}>{fmt(spent)}</td>
                       <td style={{ padding:'11px 14px', minWidth:120 }}>
@@ -1040,8 +883,12 @@ export default function Budgets() {
                           <span style={{ fontSize:11, fontWeight:700, color:'var(--text3)', minWidth:28 }}>{pct.toFixed(0)}%</span>
                         </div>
                       </td>
-                      <td style={{ padding:'11px 14px', fontSize:12, color:dl!==null&&dl<=3?'#f59e0b':'var(--text3)', fontWeight:dl!==null&&dl<=3?600:400 }}>{dl===null?'—':dl<=0?'Terminé':`${dl}j`}</td>
-                      <td style={{ padding:'11px 14px' }}><span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background:b._status.bg, color:b._status.color }}>{b._status.icon} {b._status.label}</span></td>
+                      <td style={{ padding:'11px 14px', fontSize:12, color:dl!==null&&dl<=3?'#f59e0b':'var(--text3)', fontWeight:dl!==null&&dl<=3?600:400 }}>
+                        {dl===null?'—':dl<=0?'Terminé':`${dl}j`}
+                      </td>
+                      <td style={{ padding:'11px 14px' }}>
+                        <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background:b._status.bg, color:b._status.color }}>{b._status.icon} {b._status.label}</span>
+                      </td>
                       <td style={{ padding:'11px 14px' }}>
                         <div style={{ display:'flex', gap:4 }}>
                           <button className="btn btn-ghost btn-sm" style={{ padding:'5px 8px' }} onClick={()=>openEdit(b)}>✏</button>

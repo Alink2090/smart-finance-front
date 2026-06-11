@@ -1,18 +1,32 @@
 {
-  "name": "SmartFinance",
+  "name": "SmartFinance Manager",
   "short_name": "SmartFinance",
   "description": "Gestion financière personnelle intelligente",
-  "start_url": "/",
+  "theme_color": "#111118",
+  "background_color": "#0a0a0f",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0a0a0f",
-  "theme_color": "#111118",
-  "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
-  ],
-  "categories": ["finance", "productivity"],
+  "start_url": "/dashboard",
+  "scope": "/",
   "lang": "fr",
-  "scope": "/"
+  "categories": ["finance", "productivity"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Ajouter transaction",
+      "short_name": "Ajouter",
+      "description": "Ajouter une nouvelle transaction",
+      "url": "/transactions",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ]
 }

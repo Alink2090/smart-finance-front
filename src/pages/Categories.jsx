@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useIsMobile } from '../hooks/useIsMobile'
 import { createPortal } from 'react-dom'
 import { categoriesAPI } from '../services/api'
 import { useToast } from '../context/ToastContext'
 import { useAuth } from '../context/AuthContext'
+import { useBreakpoint } from '../hooks/useBreakpoint'
+import MobilePageShell from '../components/MobilePageShell'
 
 // Téléporte le modal dans document.body pour échapper à tout contexte CSS parent
 // (sidebar avec transform/filter/will-change qui casse le position:fixed)
@@ -325,9 +326,11 @@ export default function Categories() {
   const confirmName = categories.find(c => c.id === confirmId)?.name ?? ''
 
   // ── Rendu ──────────────────────────────────
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
+
   return (
-    <div className="fade-up" style={{ padding: isMobile ? 16 : 24 }}>
+    <MobilePageShell title="Catégories" subtitle="Gérer vos catégories de revenus & dépenses">
+    <div className="fade-up" style={{ padding: isMobile ? '12px 0 0' : 24 }}>
 
       {/* En-tête de page */}
       <div style={{
@@ -465,5 +468,6 @@ export default function Categories() {
         />
       )}
     </div>
+    </MobilePageShell>
   )
 }

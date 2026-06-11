@@ -1,5 +1,4 @@
 
-import { useIsMobile } from '../hooks/useIsMobile'
 /**
  * Reports.jsx — VERSION ALLÉGÉE
  * Aucun calcul côté front — tout vient du back.
@@ -7,6 +6,8 @@ import { useIsMobile } from '../hooks/useIsMobile'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useBreakpoint } from '../hooks/useBreakpoint'
+import MobilePageShell from '../components/MobilePageShell'
 import { analyticsAPI, transactionsAPI } from '../services/api'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 
@@ -127,9 +128,11 @@ export default function Reports() {
   // Helper : extrait le nom d'une catégorie qu'elle soit objet ou string
   const catName = cat => cat ? (typeof cat === 'object' ? cat.name : cat) : null
 
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
+
   return (
-    <div className="fade-up" style={{ padding: isMobile ? 16 : 24 }}>
+    <MobilePageShell title="Rapports" subtitle="Export CSV & PDF">
+    <div className="fade-up" style={{ padding: isMobile ? '12px 0 0' : 24 }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
@@ -466,5 +469,6 @@ export default function Reports() {
         )}
       </div>
     </div>
+    </MobilePageShell>
   )
 }

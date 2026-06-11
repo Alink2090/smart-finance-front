@@ -1,5 +1,4 @@
 /**
-import { useIsMobile } from '../hooks/useIsMobile'
  * Insights.jsx — VERSION ALLÉGÉE
  *
  * AVANT : generateInsights() + useInsights() calculaient tout côté React
@@ -10,6 +9,8 @@ import { useIsMobile } from '../hooks/useIsMobile'
  */
 
 import { useState, useEffect, useCallback } from 'react'
+import { useBreakpoint } from '../hooks/useBreakpoint'
+import MobilePageShell from '../components/MobilePageShell'
 import { useAuth } from '../context/AuthContext'
 import { analyticsAPI } from '../services/api'
 
@@ -135,9 +136,11 @@ export default function Insights() {
     return acc
   }, {})
 
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
+
   return (
-    <div className="fade-up" style={{ padding: isMobile ? 16 : 24 }}>
+    <MobilePageShell title="Insights" subtitle="Alertes & conseils personnalisés">
+    <div className="fade-up" style={{ padding: isMobile ? '12px 0 0' : 24 }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
@@ -274,5 +277,6 @@ export default function Insights() {
         </div>
       )}
     </div>
+    </MobilePageShell>
   )
 }
