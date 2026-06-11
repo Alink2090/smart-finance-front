@@ -9,7 +9,7 @@ import Budgets from './pages/Budgets'
 import Analytics from './pages/Analytics'
 import Categories from './pages/Categories'
 import Insights from './pages/Insights'
-import Reports  from './pages/Reports'
+import Reports from './pages/Reports'
 import InstallButton from './components/InstallButton'
 
 function PrivateRoute({ children }) {
@@ -18,7 +18,7 @@ function PrivateRoute({ children }) {
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg)' }}>
       <div style={{ textAlign:'center' }}>
         <div className="spinner" style={{ width:32, height:32, borderWidth:3, margin:'0 auto 16px' }} />
-        <p style={{ color:'var(--text2)', fontSize:14 }}>Loading…</p>
+        <p style={{ color:'var(--text2)', fontSize:14 }}>Chargement…</p>
       </div>
     </div>
   )
@@ -36,17 +36,19 @@ export default function App() {
     <>
       <InstallButton />
       <Routes>
-        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/login"    element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/"             element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard"    element={<Dashboard />} />
           <Route path="/transactions" element={<Transactions />} />
-          <Route path="/budgets" element={<Budgets />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/insights" element={<Insights/>}/>
-          <Route path="/reports"  element={<Reports/>}/>
-          <Route path="/categories" element={<Categories />} />
+          <Route path="/budgets"      element={<Budgets />} />
+          <Route path="/analytics"    element={<Analytics />} />
+          <Route path="/insights"     element={<Insights />} />
+          <Route path="/reports"      element={<Reports />} />
+          <Route path="/categories"   element={<Categories />} />
+          {/* /more route: redirect mobile "plus" tab to insights as default */}
+          <Route path="/more"         element={<Navigate to="/insights" replace />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

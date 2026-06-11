@@ -9,10 +9,9 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { useBreakpoint } from '../hooks/useBreakpoint'
-import MobilePageShell from '../components/MobilePageShell'
 import { useAuth } from '../context/AuthContext'
 import { analyticsAPI } from '../services/api'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const fmt = n => `${new Intl.NumberFormat('fr-FR').format(Number(n) || 0)} FCFA`
 
@@ -136,11 +135,9 @@ export default function Insights() {
     return acc
   }, {})
 
-  const { isMobile } = useBreakpoint()
-
+  const isMobile = useIsMobile()
   return (
-    <MobilePageShell title="Insights" subtitle="Alertes & conseils personnalisés">
-    <div className="fade-up" style={{ padding: isMobile ? '12px 0 0' : 24 }}>
+    <div className="fade-up" style={{ padding: isMobile ? 16 : 24 }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
@@ -277,6 +274,5 @@ export default function Insights() {
         </div>
       )}
     </div>
-    </MobilePageShell>
   )
 }

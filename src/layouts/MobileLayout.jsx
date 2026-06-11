@@ -52,7 +52,7 @@ function MobileHeader({ onMenuOpen }) {
   return (
     <header style={{
       position: 'sticky', top: 0, zIndex: 100,
-      background: 'rgba(17,17,24,0.92)',
+      background: 'rgba(10,10,15,0.94)',
       backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
       borderBottom: '1px solid var(--border)',
       display: 'flex', alignItems: 'center',
@@ -94,7 +94,7 @@ function BottomNav() {
       backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
       borderTop: '1px solid var(--border)',
       display: 'flex', alignItems: 'stretch',
-      height: 64, paddingBottom: 'env(safe-area-inset-bottom)',
+      height: 'calc(64px + env(safe-area-inset-bottom, 0px))', paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       zIndex: 100,
     }}>
       {BOTTOM_NAV.map(item => {
@@ -202,7 +202,7 @@ export default function MobileLayout() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', minHeight: '100dvh' }}>
       <MobileHeader onMenuOpen={() => setDrawerOpen(true)} />
-      <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingBottom: 80 }}>
+      <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
         <Outlet />
       </main>
       <BottomNav />

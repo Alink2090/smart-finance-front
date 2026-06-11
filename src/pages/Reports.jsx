@@ -6,10 +6,9 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { useBreakpoint } from '../hooks/useBreakpoint'
-import MobilePageShell from '../components/MobilePageShell'
 import { analyticsAPI, transactionsAPI } from '../services/api'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const fmt     = n => `${new Intl.NumberFormat('fr-FR').format(Number(n) || 0)} FCFA`
 const fmtFull = n => `${new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(Number(n) || 0)} FCFA`
@@ -128,11 +127,9 @@ export default function Reports() {
   // Helper : extrait le nom d'une catégorie qu'elle soit objet ou string
   const catName = cat => cat ? (typeof cat === 'object' ? cat.name : cat) : null
 
-  const { isMobile } = useBreakpoint()
-
+  const isMobile = useIsMobile()
   return (
-    <MobilePageShell title="Rapports" subtitle="Export CSV & PDF">
-    <div className="fade-up" style={{ padding: isMobile ? '12px 0 0' : 24 }}>
+    <div className="fade-up" style={{ padding: isMobile ? 16 : 24 }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
@@ -469,6 +466,5 @@ export default function Reports() {
         )}
       </div>
     </div>
-    </MobilePageShell>
   )
 }
