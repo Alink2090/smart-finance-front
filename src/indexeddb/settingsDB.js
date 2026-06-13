@@ -6,7 +6,7 @@
  *   - On stocke : SHA-256(userId + ":" + pin) → empêche rainbow tables cross-user.
  *   - L'userId sert de sel spécifique à l'utilisateur.
  */
-import { put, get } from './db.js'
+import { put, get, openDB } from './db.js'
 
 const STORE = 'settings'
 
@@ -47,8 +47,13 @@ export async function hasPin() {
 }
 
 export async function clearPin() {
-  const { idbTx } = await import('./db.js')
-  await idbTx(STORE, 'readwrite', store => store.delete('pin_hash'))
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(STORE, 'readwrite')
+    const req = tx.objectStore(STORE).delete('pin_hash')
+    req.onsuccess = () => resolve()
+    req.onerror   = () => reject(req.error)
+  })
 }
 
 // ── Biométrie (architecture extensible — V2) ──────────────────────────────────
@@ -77,6 +82,11 @@ export async function getUnlockedAt() {
   return rec?.value ?? null
 }
 export async function clearUnlocked() {
-  const { idbTx } = await import('./db.js')
-  await idbTx(STORE, 'readwrite', store => store.delete('unlocked_at'))
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(STORE, 'readwrite')
+    const req = tx.objectStore(STORE).delete('unlocked_at')
+    req.onsuccess = () => resolve()
+    req.onerror   = () => reject(req.error)
+  })
 }

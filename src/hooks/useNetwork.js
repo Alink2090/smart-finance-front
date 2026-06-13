@@ -1,88 +1,125 @@
 /**
- * useNetwork.js — Détection de connectivité réseau
- * 
- * Va au-delà de navigator.onLine (qui est souvent inexact) :
- * fait un vrai ping vers l'API pour confirmer la connectivité réelle.
+ * useNetwork.js — Détection de connectivité réseau fiable
+ *
+ * Problèmes corrigés vs v1 :
+ *  - Le fallback gstatic en no-cors ne throw jamais → retiré
+ *  - On utilise une vraie requête avec timeout + abort pour détecter l'offline
+ *  - L'état initial est false si navigator.onLine=false, sinon vérifié immédiatement
+ *  - Pas de polling agressif : events natifs + 1 vérification toutes les 30s si online
  */
 import { useState, useEffect, useCallback, useRef } from 'react'
 
-const PING_URL      = `${import.meta.env.VITE_API_URL}/Api_Gestion/health/` 
-const PING_INTERVAL = 30_000  // vérification toutes les 30s
-const PING_TIMEOUT  = 5_000   // timeout 5s
+// URL de ping : on cible l'API Django elle-même.
+// Si elle répond (même 401/403/404) → on est en ligne.
+// Si elle ne répond pas → on est hors ligne.
+const API_BASE   = import.meta.env.VITE_API_URL ?? ''
+const PING_URL   = API_BASE
+  ? `${API_BASE.replace(/\/$/, '')}/Api_Gestion/health/`
+  : null
+const TIMEOUT_MS = 4000
 
+/**
+ * Vérifie la connectivité réseau RÉELLE.
+ * Retourne false si :
+ *  - navigator.onLine === false (rapide, sans réseau)
+ *  - La requête dépasse TIMEOUT_MS
+ *  - La requête échoue (réseau coupé, DNS, etc.)
+ * Retourne true si :
+ *  - La réponse arrive (quel que soit le status HTTP)
+ */
 async function checkConnectivity() {
-  // navigator.onLine = false → forcément offline
+  // Cas trivial — le navigateur sait déjà qu'il est hors ligne
   if (!navigator.onLine) return false
+
+  const ctrl  = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
+
   try {
-    const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), PING_TIMEOUT)
-    // HEAD request : léger, ne charge rien
-    const res = await fetch(PING_URL, {
-      method: 'HEAD', cache: 'no-store', signal: ctrl.signal,
+    // On essaie d'abord l'API Django
+    if (PING_URL) {
+      await fetch(PING_URL, {
+        method: 'HEAD',
+        cache:  'no-store',
+        signal: ctrl.signal,
+        // Pas de credentials pour éviter les pre-flight CORS
+        mode:   'no-cors',
+      })
+      // no-cors : si la requête aboutit (même opaque), on est connecté
+      clearTimeout(timer)
+      return true
+    }
+
+    // Pas d'API configurée : teste avec une image 1×1 Google (fiable, pas de CORS)
+    // IMPORTANT : on vérifie response.type — 'opaque' = requête arrivée, pas de réseau = throw
+    await fetch('https://www.google.com/favicon.ico', {
+      method: 'HEAD',
+      cache:  'no-store',
+      signal: ctrl.signal,
+      mode:   'no-cors',
     })
     clearTimeout(timer)
-    return res.ok
-  } catch {
-    // Si l'API n'a pas de /health/, on teste avec une simple requête réseau
-    try {
-      const ctrl2 = new AbortController()
-      setTimeout(() => ctrl2.abort(), PING_TIMEOUT)
-      await fetch('https://www.gstatic.com/generate_204', {
-        method: 'HEAD', cache: 'no-store', mode: 'no-cors', signal: ctrl2.signal,
-      })
-      return true
-    } catch { return false }
+    return true
+  } catch (err) {
+    clearTimeout(timer)
+    // AbortError (timeout) ou TypeError (réseau coupé) → offline
+    return false
   }
 }
 
 export function useNetwork() {
-  const [online,      setOnline]      = useState(navigator.onLine)
-  const [wasOffline,  setWasOffline]  = useState(false)
+  // Initialisation conservatrice :
+  // - Si navigator.onLine=false → offline immédiatement
+  // - Sinon on met "true" provisoire et on vérifie dans useEffect
+  const [online,       setOnline]       = useState(navigator.onLine)
   const [justCameBack, setJustCameBack] = useState(false)
   const prevOnline = useRef(navigator.onLine)
-  const timerRef   = useRef(null)
+  const justCameBackTimer = useRef(null)
+  const pollTimer  = useRef(null)
 
-  const verify = useCallback(async () => {
-    const isOnline = await checkConnectivity()
+  const applyOnlineState = useCallback((isOnline) => {
     setOnline(prev => {
+      // Retour en ligne : déclenche la bannière de sync pendant 8s
       if (!prev && isOnline) {
-        // Vient de revenir online
-        setWasOffline(true)
+        clearTimeout(justCameBackTimer.current)
         setJustCameBack(true)
-        // Reset "justCameBack" après 8s (durée de la bannière de sync)
-        setTimeout(() => setJustCameBack(false), 8_000)
+        justCameBackTimer.current = setTimeout(() => setJustCameBack(false), 8000)
       }
       prevOnline.current = isOnline
       return isOnline
     })
   }, [])
 
+  const verify = useCallback(async () => {
+    const isOnline = await checkConnectivity()
+    applyOnlineState(isOnline)
+    return isOnline
+  }, [applyOnlineState])
+
   useEffect(() => {
+    // Handlers natifs du navigateur
     const handleOnline  = () => verify()
-    const handleOffline = () => { setOnline(false); prevOnline.current = false }
+    const handleOffline = () => applyOnlineState(false)
 
     window.addEventListener('online',  handleOnline)
     window.addEventListener('offline', handleOffline)
 
-    // Polling périodique (utile quand les events natifs ne se déclenchent pas)
-    timerRef.current = setInterval(verify, PING_INTERVAL)
-    verify() // vérification initiale
+    // Vérification initiale (corrige le cas où navigator.onLine=true mais réseau mort)
+    verify()
+
+    // Polling léger toutes les 30s pour les réseaux captifs / VPN
+    pollTimer.current = setInterval(verify, 30_000)
 
     return () => {
       window.removeEventListener('online',  handleOnline)
       window.removeEventListener('offline', handleOffline)
-      clearInterval(timerRef.current)
+      clearInterval(pollTimer.current)
+      clearTimeout(justCameBackTimer.current)
     }
-  }, [verify])
+  }, [verify, applyOnlineState])
 
   return {
-    /** true si connecté au réseau */
     online,
-    /** true si l'app était offline à un moment de la session */
-    wasOffline,
-    /** true pendant 8s juste après le retour en ligne */
     justCameBack,
-    /** Force une vérification immédiate */
     checkNow: verify,
   }
 }

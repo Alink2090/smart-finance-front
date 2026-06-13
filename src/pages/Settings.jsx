@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useCallback } from 'react'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useAuth }     from '../context/AuthContext'
 import { useOffline }  from '../context/OfflineContext'
 import {
   isOfflineEnabled, setOfflineEnabled,
@@ -81,6 +82,8 @@ function ToggleRow({ label, sub, checked, onChange, disabled }) {
 export default function Settings() {
   const isMobile = useIsMobile()
   const { online, pendingCount, sync, syncing } = useOffline()
+  const { user } = useAuth()
+  const userId = user?.id ?? 'user'
 
   // ── État local ────────────────────────────────────────────────────────────
   const [offlineEnabled, setOfflineEnabledState] = useState(false)
@@ -128,9 +131,6 @@ export default function Settings() {
         const ok = await verifyPin(null, currentPin) // userId récupéré depuis settingsDB directement
         if (!ok) { setPinErr('PIN actuel incorrect'); return }
       }
-      const { useAuth } = await import('../context/AuthContext')
-      // Récupère userId depuis localStorage en fallback
-      const userId = JSON.parse(localStorage.getItem('sf_user') || '{}')?.id ?? 'user'
       await setPin(userId, newPin)
       setPinExists(true)
       setPinSuccess(mode === 'change' ? 'PIN modifié avec succès ✓' : 'PIN configuré avec succès ✓')
@@ -142,7 +142,6 @@ export default function Settings() {
   const handleDisablePin = async () => {
     setLoading(true)
     try {
-      const userId = JSON.parse(localStorage.getItem('sf_user') || '{}')?.id ?? 'user'
       const ok = await verifyPin(userId, currentPin)
       if (!ok) { setPinErr('PIN incorrect'); return }
       await clearPin()

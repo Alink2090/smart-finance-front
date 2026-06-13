@@ -11,7 +11,7 @@
  * Le moteur est appelé par useSyncEngine (hook React) qui écoute online/offline.
  */
 import { getPendingItems, markDone, markFailed, deduplicateQueue } from './syncQueue.js'
-import { put, getAllByIndex }                                         from '../indexeddb/db.js'
+import { put, get, remove, getAllByIndex }                            from '../indexeddb/db.js'
 import { transactionsAPI, budgetsAPI, categoriesAPI }                from '../services/api.js'
 
 // ── Mapping store → API calls ─────────────────────────────────────────────────
@@ -90,7 +90,6 @@ async function processItem(item) {
     if (serverId) {
       const existingArr = await getAllByIndex(store, 'local_id', local_id)
       // local_id est la clé primaire, donc on get directement
-      const { get } = await import('../indexeddb/db.js')
       const existing = await get(store, local_id)
       if (existing) {
         await put(store, {
@@ -106,7 +105,6 @@ async function processItem(item) {
 
   // ── Après update ──────────────────────────────────────────────────────────
   if (operation === 'update') {
-    const { get } = await import('../indexeddb/db.js')
     const existing = await get(store, local_id)
     if (existing) {
       await put(store, { ...existing, sync_status: 'synced' })
@@ -115,7 +113,6 @@ async function processItem(item) {
 
   // ── Après delete : supprimer localement ──────────────────────────────────
   if (operation === 'delete') {
-    const { remove } = await import('../indexeddb/db.js')
     await remove(store, local_id)
   }
 }
