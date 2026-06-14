@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { analyticsAPI } from '../services/api'
+import { offlineAnalyticsAPI } from '../services/offlineApi'
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area,
   PieChart, Pie, Cell,
@@ -92,9 +92,9 @@ export default function Analytics() {
     setLoading(true); setErr(null)
     try {
       const [dash, mon, cat] = await Promise.all([
-        analyticsAPI.dashboard(user.id),
-        analyticsAPI.monthlyExpenses(user.id, period),
-        analyticsAPI.categoryExpenses(user.id),
+        offlineAnalyticsAPI.dashboard(user.id),
+        offlineAnalyticsAPI.monthlyExpenses(user.id, period),
+        offlineAnalyticsAPI.categoryExpenses(user.id),
       ])
 
       setDashboard(dash?.data ?? dash)

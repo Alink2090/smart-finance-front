@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { transactionsAPI, categoriesAPI } from '../services/api'
+import { offlineTransactionsAPI, offlineCategoriesAPI } from '../services/offlineApi'
 import { useToast } from '../context/ToastContext'
 import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -355,8 +355,8 @@ export default function Transactions() {
     setLoading(true); setErr(null)
     try {
       const [txRes, catRes] = await Promise.all([
-        transactionsAPI.getAll(user.id),
-        categoriesAPI.getAll(user.id),
+        offlineTransactionsAPI.getAll(user.id),
+        offlineCategoriesAPI.getAll(user.id),
       ])
       setTxs(Array.isArray(txRes) ? txRes : (txRes?.data ?? txRes?.transactions ?? []))
       const cats = Array.isArray(catRes) ? catRes : (catRes?.data ?? catRes?.categories ?? [])
@@ -371,10 +371,10 @@ export default function Transactions() {
   const handleSave = async data => {
     try {
       if (editTx) {
-        await transactionsAPI.update(editTx.id, { user_id: user.id, ...data })
+        await offlineTransactionsAPI.update(editTx.id, data, user.id)
         success('Transaction mise à jour')
       } else {
-        await transactionsAPI.create({ user_id: user.id, ...data })
+        await offlineTransactionsAPI.create(user.id, data)
         success(data.type === 'transfer' ? '↔ Transfert enregistré' : 'Transaction ajoutée')
       }
       setShowForm(false); setEditTx(null); load()
@@ -383,7 +383,7 @@ export default function Transactions() {
 
   const handleDelete = async () => {
     try {
-      await transactionsAPI.delete(confirmId, user.id)
+      await offlineTransactionsAPI.delete(confirmId, user.id)
       success('Transaction supprimée')
       setConfirmId(null); load()
     } catch (e) { toastErr(e.message) }

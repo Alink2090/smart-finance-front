@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { authAPI } from '../services/api'
+import { authAPI }    from '../services/api'
+import { warmCache }  from '../sync/cacheWarmer'
 
 const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -14,7 +15,12 @@ export function AuthProvider({ children }) {
     const userdata = localStorage.getItem('userdata')
     if (!token) { setLoading(false); return }
     authAPI.profile({ userdata })
-      .then(data => setUser(data?.user ?? data))
+      .then(data => {
+        const u = data?.user ?? data
+        setUser(u)
+        // Re-warm cache si données IDB potentiellement obsolètes
+        if (navigator.onLine) warmCache(u).catch(() => {})
+      })
       .catch(() => localStorage.removeItem('token'))
       .finally(() => setLoading(false))
   }, [])
@@ -47,6 +53,9 @@ export function AuthProvider({ children }) {
     localStorage.setItem('userdata', JSON.stringify(userData))
 
     setUser(userData)
+    // Pré-remplit IndexedDB en arrière-plan dès le login
+    // Ne bloque pas — les erreurs sont ignorées silencieusement
+    warmCache(userData).catch(e => console.warn('[CacheWarmer]', e))
     return userData
   }, [])
 

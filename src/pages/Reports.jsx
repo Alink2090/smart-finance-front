@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { analyticsAPI, transactionsAPI } from '../services/api'
+import { offlineAnalyticsAPI, offlineTransactionsAPI } from '../services/offlineApi'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { useIsMobile } from '../hooks/useIsMobile'
 
@@ -65,10 +65,10 @@ export default function Reports() {
     setLoading(true); setErr(null)
     try {
       const [dash, mon, cat, t] = await Promise.all([
-        analyticsAPI.dashboard(user.id),
-        analyticsAPI.monthlyExpenses(user.id, 12),
-        analyticsAPI.categoryExpenses(user.id),
-        transactionsAPI.getAll(user.id),
+        offlineAnalyticsAPI.dashboard(user.id),
+        offlineAnalyticsAPI.monthlyExpenses(user.id, 12),
+        offlineAnalyticsAPI.categoryExpenses(user.id),
+        offlineTransactionsAPI.getAll(user.id),
       ])
       setDashboard(dash?.data ?? dash)
       setMonthly(mon?.data ?? [])

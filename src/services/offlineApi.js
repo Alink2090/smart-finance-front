@@ -8,7 +8,7 @@
  *  - Fallback IDB systématique si fetch échoue (réseau mort mais
  *    navigator.onLine=true, ex: réseau captif)
  */
-import { transactionsAPI, budgetsAPI, categoriesAPI } from './api.js'
+import { transactionsAPI, budgetsAPI, categoriesAPI, analyticsAPI } from './api.js'
 import {
   getTransactions, createTransaction, updateTransaction,
   deleteTransaction, cacheTransactions,
@@ -21,6 +21,11 @@ import {
   getCategories, createCategory,
   deleteCategory, cacheCategories,
 } from '../indexeddb/categoriesDB.js'
+import {
+  saveDashboard, getDashboard,
+  saveMonthly,   getMonthly,
+  saveCategoryExp, getCategoryExp,
+} from '../indexeddb/userDB.js'
 
 // ── État réseau partagé ───────────────────────────────────────────────────────
 // Mis à jour par setNetworkStatus() appelé depuis OfflineContext
@@ -140,5 +145,72 @@ export const offlineCategoriesAPI = {
       try { await categoriesAPI.delete(id); return } catch {}
     }
     return deleteCategory(id)
+  },
+}
+
+// ── Analytics (read-only — cache snapshot en IDB) ─────────────────────────────
+
+export const offlineAnalyticsAPI = {
+  dashboard: async (userId) => {
+    if (isOnline()) {
+      try {
+        const res = await analyticsAPI.dashboard(userId)
+        const data = res?.data ?? res
+        // Sauvegarde snapshot IDB pour le mode offline
+        if (data) await saveDashboard(data).catch(() => {})
+        return data
+      } catch {}
+    }
+    // Offline → retourne le snapshot mis en cache
+    const snap = await getDashboard()
+    return snap?.data ?? null
+  },
+
+  monthlyExpenses: async (userId, months) => {
+    if (isOnline()) {
+      try {
+        const res = await analyticsAPI.monthlyExpenses(userId, months)
+        const data = Array.isArray(res) ? res : (res?.data ?? [])
+        if (data.length) await saveMonthly(data).catch(() => {})
+        return data
+      } catch {}
+    }
+    const snap = await getMonthly()
+    return snap?.data ?? []
+  },
+
+  categoryExpenses: async (userId) => {
+    if (isOnline()) {
+      try {
+        const res = await analyticsAPI.categoryExpenses(userId)
+        const data = Array.isArray(res) ? res : (res?.data ?? [])
+        if (data.length) await saveCategoryExp(data).catch(() => {})
+        return data
+      } catch {}
+    }
+    const snap = await getCategoryExp()
+    return snap?.data ?? []
+  },
+
+  insights: async (userId) => {
+    if (isOnline()) {
+      try {
+        const res = await analyticsAPI.insights(userId)
+        return res?.data ?? res ?? { insights: [] }
+      } catch {}
+    }
+    return { insights: [] }
+  },
+
+  // Reports page
+  getReports: async (userId) => {
+    if (isOnline()) {
+      try {
+        const res = await analyticsAPI.dashboard(userId)
+        return res?.data ?? res
+      } catch {}
+    }
+    const snap = await getDashboard()
+    return snap?.data ?? null
   },
 }

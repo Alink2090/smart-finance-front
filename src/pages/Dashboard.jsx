@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { analyticsAPI } from '../services/api'
+import { offlineAnalyticsAPI } from '../services/offlineApi'
 import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { InsightCard } from '../components/ui'
@@ -398,10 +398,10 @@ export default function Dashboard() {
     let active = true
     setLoading(true)
     Promise.all([
-      analyticsAPI.dashboard(user.id),
-      analyticsAPI.monthlyExpenses(user.id, 6),
-      analyticsAPI.categoryExpenses(user.id),
-      analyticsAPI.insights(user.id),
+      offlineAnalyticsAPI.dashboard(user.id),
+      offlineAnalyticsAPI.monthlyExpenses(user.id, 6),
+      offlineAnalyticsAPI.categoryExpenses(user.id),
+      offlineAnalyticsAPI.insights(user.id),
     ])
     .then(([dash, mon, cat, ins]) => {
       if (!active) return

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { createPortal } from 'react-dom'
-import { budgetsAPI, categoriesAPI } from '../services/api'
+import { offlineBudgetsAPI, offlineCategoriesAPI } from '../services/offlineApi'
 import { useToast } from '../context/ToastContext'
 import { useAuth } from '../context/AuthContext'
 
@@ -601,7 +601,7 @@ export default function Budgets() {
     if (!user?.id) return
     setLoading(true); setErr(null)
     try {
-      const [bRes, cRes] = await Promise.all([budgetsAPI.getAll(user.id), categoriesAPI.getAll(user.id)])
+      const [bRes, cRes] = await Promise.all([offlineBudgetsAPI.getAll(user.id), offlineCategoriesAPI.getAll(user.id)])
       setBudgets(Array.isArray(bRes) ? bRes : (bRes?.data ?? bRes?.budgets ?? []))
       setCategories(Array.isArray(cRes) ? cRes : (cRes?.data ?? cRes?.categories ?? []))
     } catch(e) { setErr(e.message) }
@@ -613,10 +613,10 @@ export default function Budgets() {
   const handleSave = async data => {
     try {
       if (editItem) {
-        await budgetsAPI.update(editItem.id, { user_id:user.id, ...data })
+        await offlineBudgetsAPI.update(editItem.id, { user_id:user.id, ...data })
         success('Mis à jour')
       } else {
-        await budgetsAPI.create({ user_id:user.id, ...data })
+        await offlineBudgetsAPI.create({ user_id:user.id, ...data })
         success(data.budget_type==='saving_global' ? '🌍 Épargne globale créée !' : data.budget_type==='saving' ? '🏦 Épargne créée !' : '💸 Budget créé !')
       }
       setShowForm(false); setEditItem(null); load()
@@ -625,7 +625,7 @@ export default function Budgets() {
 
   const handleDelete = async () => {
     try {
-      await budgetsAPI.delete(confirmDelete, user.id)
+      await offlineBudgetsAPI.delete(confirmDelete, user.id)
       success('Supprimé')
       setConfirmDelete(null); load()
     } catch(e) { toastErr(e.message) }
@@ -777,7 +777,7 @@ export default function Budgets() {
               fontFamily:'inherit', fontWeight:700, fontSize:14, color:'white',
               background:mainTab==='saving_global'?'linear-gradient(135deg,#a78bfa,#7c3aed)':mainTab==='saving'?'linear-gradient(135deg,#22d3a0,#059669)':'linear-gradient(135deg,#7c6cfc,#5b4de8)',
             }}>
-              {mainTab==='saving_global'?'🌍 Créer': mainTab==='saving' ? '🏦 Créer' : '💸 Créer'}
+              {mainTab==='saving_global'?'🌍 Créer':'🏦' ? mainTab==='saving' ? '🏦 Créer' : '💸 Créer'}
             </button>
           </div>
         ) : (

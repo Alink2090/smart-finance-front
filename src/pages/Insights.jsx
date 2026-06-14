@@ -10,7 +10,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { analyticsAPI } from '../services/api'
+import { offlineAnalyticsAPI } from '../services/offlineApi'
 import { useIsMobile } from '../hooks/useIsMobile'
 
 const fmt = n => `${new Intl.NumberFormat('fr-FR').format(Number(n) || 0)} FCFA`
@@ -99,8 +99,8 @@ export default function Insights() {
     setLoading(true); setErr(null)
     try {
       const [ins, dash] = await Promise.all([
-        analyticsAPI.insights(user.id),
-        analyticsAPI.dashboard(user.id),
+        offlineAnalyticsAPI.insights(user.id),
+        offlineAnalyticsAPI.dashboard(user.id),
       ])
 
       // Le back retourne { insights: [...], summary: {...} }
