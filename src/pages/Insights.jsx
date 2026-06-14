@@ -106,7 +106,7 @@ export default function Insights() {
       // Le back retourne { insights: [...], summary: {...} }
       setAllInsights(ins?.insights ?? [])
       setSummary(ins?.summary ?? null)
-      setDashboard(dash?.data ?? dash)
+      setDashboard(dash ?? null)
 
     } catch(e) { setErr(e.message) }
     finally { setLoading(false) }

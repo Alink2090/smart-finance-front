@@ -36,6 +36,12 @@ const icons = {
       <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
     </svg>
   ),
+  categories: (
+    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
+      <circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none"/>
+    </svg>
+  ),
   more: (
     <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
       <circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none"/>
@@ -49,11 +55,12 @@ const BOTTOM_NAV = [
   { to: '/dashboard',    label: 'Accueil',      icon: icons.dashboard },
   { to: '/transactions', label: 'Transactions', icon: icons.transactions },
   { to: '/budgets',      label: 'Budgets',      icon: icons.budgets },
-  { to: '/analytics',   label: 'Analytics',    icon: icons.analytics },
+  { to: '/categories',  label: 'Catégories',   icon: icons.categories },
   { to: '/more',         label: 'Plus',         icon: icons.more, isDrawer: true },
 ]
 
 const MORE_ITEMS = [
+  { to: '/analytics',   label: 'Analytics',  emoji: '📊', sub: 'Tendances & projections' },
   { to: '/insights',   label: 'Insights',   emoji: '💡', sub: 'Alertes & conseils' },
   { to: '/reports',    label: 'Rapports',   emoji: '📄', sub: 'Export CSV / PDF' },
   { to: '/categories', label: 'Catégories', emoji: '🏷️', sub: 'Gérer les catégories' },

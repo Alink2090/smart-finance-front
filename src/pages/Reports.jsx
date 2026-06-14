@@ -70,8 +70,8 @@ export default function Reports() {
         offlineAnalyticsAPI.categoryExpenses(user.id),
         offlineTransactionsAPI.getAll(user.id),
       ])
-      setDashboard(dash?.data ?? dash)
-      setMonthly(mon?.data ?? [])
+      setDashboard(dash ?? null)
+      setMonthly(Array.isArray(mon) ? mon : (mon?.data ?? []))
       setMonthlyMeta(mon?.metrics ?? null)
       setCatData(cat?.data ?? [])
       setTopCat(cat?.top_category ?? null)

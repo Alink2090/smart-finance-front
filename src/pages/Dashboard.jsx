@@ -405,9 +405,13 @@ export default function Dashboard() {
     ])
     .then(([dash, mon, cat, ins]) => {
       if (!active) return
-      setDashboard(dash?.data ?? dash)
-      setMonthly(mon?.data ?? [])
-      setCatExp(cat?.data ?? [])
+      // dashboard: objet direct { total_income, balance, ... }
+      setDashboard(dash ?? null)
+      // monthly: { data: [...], metrics: {...} } ou tableau direct
+      setMonthly(Array.isArray(mon) ? mon : (mon?.data ?? []))
+      // categoryExpenses: { data: [...] } ou tableau direct
+      setCatExp(Array.isArray(cat) ? cat : (cat?.data ?? []))
+      // insights: { insights: [...] }
       setInsights((ins?.insights ?? []).slice(0, 3))
     })
     .catch(e => { if (active) setError(e.message) })

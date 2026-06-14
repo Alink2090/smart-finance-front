@@ -154,14 +154,12 @@ export const offlineAnalyticsAPI = {
   dashboard: async (userId) => {
     if (isOnline()) {
       try {
+        // analyticsAPI.dashboard retourne directement { total_income, balance, ... }
         const res = await analyticsAPI.dashboard(userId)
-        const data = res?.data ?? res
-        // Sauvegarde snapshot IDB pour le mode offline
-        if (data) await saveDashboard(data).catch(() => {})
-        return data
+        if (res) await saveDashboard(res).catch(() => {})
+        return res
       } catch {}
     }
-    // Offline → retourne le snapshot mis en cache
     const snap = await getDashboard()
     return snap?.data ?? null
   },
@@ -169,27 +167,28 @@ export const offlineAnalyticsAPI = {
   monthlyExpenses: async (userId, months) => {
     if (isOnline()) {
       try {
+        // Backend retourne { data: [...], metrics: { avg_monthly_expense, ... } }
         const res = await analyticsAPI.monthlyExpenses(userId, months)
-        const data = Array.isArray(res) ? res : (res?.data ?? [])
-        if (data.length) await saveMonthly(data).catch(() => {})
-        return data
+        // Cache: on sauvegarde l'objet complet pour préserver metrics
+        if (res) await saveMonthly(res).catch(() => {})
+        return res
       } catch {}
     }
     const snap = await getMonthly()
-    return snap?.data ?? []
+    return snap?.data ?? null
   },
 
   categoryExpenses: async (userId) => {
     if (isOnline()) {
       try {
+        // Backend retourne { data: [...], top_category: {...} }
         const res = await analyticsAPI.categoryExpenses(userId)
-        const data = Array.isArray(res) ? res : (res?.data ?? [])
-        if (data.length) await saveCategoryExp(data).catch(() => {})
-        return data
+        if (res) await saveCategoryExp(res).catch(() => {})
+        return res
       } catch {}
     }
     const snap = await getCategoryExp()
-    return snap?.data ?? []
+    return snap?.data ?? null
   },
 
   insights: async (userId) => {

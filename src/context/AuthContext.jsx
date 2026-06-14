@@ -53,6 +53,8 @@ export function AuthProvider({ children }) {
     localStorage.setItem('userdata', JSON.stringify(userData))
 
     setUser(userData)
+    // Flag pour afficher l'écran de bienvenue
+    sessionStorage.setItem('sf_fresh_login', '1')
     // Pré-remplit IndexedDB en arrière-plan dès le login
     // Ne bloque pas — les erreurs sont ignorées silencieusement
     warmCache(userData).catch(e => console.warn('[CacheWarmer]', e))
