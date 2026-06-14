@@ -17,7 +17,6 @@ import Settings        from './pages/Settings'
 import InstallButton   from './components/InstallButton'
 import UpdateBanner    from './components/UpdateBanner'
 import PinScreen       from './components/offline/PinScreen'
-import Welcome         from './pages/Welcome'
 
 // ── Loaders ───────────────────────────────────────────────────────────────────
 function Loader() {
@@ -81,12 +80,6 @@ function OfflineGate({ children }) {
 // ── App principale ────────────────────────────────────────────────────────────
 export default function App() {
   const { needRefresh, applyUpdate, dismissUpdate } = useServiceWorker()
-  const [showWelcome, setShowWelcome] = useState(() => {
-    // Affiche le welcome uniquement après un vrai login (flag sessionStorage)
-    const fresh = sessionStorage.getItem('sf_fresh_login')
-    if (fresh) { sessionStorage.removeItem('sf_fresh_login'); return true }
-    return false
-  })
 
   return (
     <>
@@ -95,8 +88,6 @@ export default function App() {
       {needRefresh && (
         <UpdateBanner onUpdate={applyUpdate} onDismiss={dismissUpdate} />
       )}
-
-      {showWelcome && <Welcome onDone={() => setShowWelcome(false)} />}
 
       <OfflineGate>
         <Routes>
