@@ -82,7 +82,6 @@ export function AuthProvider({ children }) {
     localStorage.setItem('token',    token)
     localStorage.setItem('userdata', JSON.stringify(userData))
     setUser(userData)
-    sessionStorage.setItem('sf_fresh_login', '1')
     warmCache(userData).catch(e => console.warn('[CacheWarmer]', e))
     return userData
   }, [])
@@ -101,7 +100,6 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     localStorage.removeItem('token')
     localStorage.removeItem('userdata')
-    sessionStorage.removeItem('sf_fresh_login')
     setUser(null)
     authAPI.logout?.().catch(() => {})
   }, [])
