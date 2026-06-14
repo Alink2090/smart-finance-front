@@ -5,7 +5,7 @@ const BASE = import.meta.env.VITE_API_URL
 const http = axios.create({
   baseURL: BASE,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 12000,
+  timeout: 6000,
 })
 
 // ── Attach token to every request ────────────────────────────────────────────

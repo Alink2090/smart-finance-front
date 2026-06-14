@@ -1,46 +1,76 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { authAPI }    from '../services/api'
-import { warmCache }  from '../sync/cacheWarmer'
+import { authAPI }   from '../services/api'
+import { warmCache } from '../sync/cacheWarmer'
 
 const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null)
+  const [user,    setUser]    = useState(null)
   const [loading, setLoading] = useState(true)
 
   // ── Restore session on app load ───────────────────────────────────────────
   useEffect(() => {
     const token    = localStorage.getItem('token')
     const userdata = localStorage.getItem('userdata')
-    if (!token) { setLoading(false); return }
+
+    // Pas de token → pas connecté, affiche immédiatement
+    if (!token) {
+      setLoading(false)
+      return
+    }
+
+    // ✅ CORRECTION CLÉ : restaure l'utilisateur depuis localStorage IMMÉDIATEMENT
+    // sans attendre le réseau → plus d'écran noir
+    if (userdata) {
+      try {
+        const parsed = JSON.parse(userdata)
+        setUser(parsed)
+      } catch {}
+    }
+    // Fin du loading immédiat — l'app s'affiche tout de suite
+    setLoading(false)
+
+    // Validation silencieuse en arrière-plan (pas bloquante)
+    // Si le token est expiré → logout propre
     authAPI.profile({ userdata })
       .then(data => {
         const u = data?.user ?? data
-        setUser(u)
-        // Re-warm cache si données IDB potentiellement obsolètes
-        if (navigator.onLine) warmCache(u).catch(() => {})
+        if (u) {
+          setUser(u)
+          localStorage.setItem('userdata', JSON.stringify(u))
+          if (navigator.onLine) warmCache(u).catch(() => {})
+        }
       })
-      .catch(() => localStorage.removeItem('token'))
-      .finally(() => setLoading(false))
+      .catch(err => {
+        // 401 = token expiré → logout
+        // Autre erreur réseau → on garde la session locale (mode offline)
+        if (err.message?.includes('401') || err.message?.includes('Unauthorized')) {
+          localStorage.removeItem('token')
+          localStorage.removeItem('userdata')
+          setUser(null)
+        }
+        // Sinon : on reste connecté avec les données locales
+      })
   }, [])
 
   // ── Listen for 401 fired by API interceptor ───────────────────────────────
   useEffect(() => {
-    const handler = () => setUser(null)
+    const handler = () => {
+      setUser(null)
+      localStorage.removeItem('token')
+      localStorage.removeItem('userdata')
+    }
     window.addEventListener('auth:logout', handler)
     return () => window.removeEventListener('auth:logout', handler)
   }, [])
 
-  // ── LOGIN étape 1 : vérifie credentials → envoie OTP ─────────────────────
-  // Appelée par Login.jsx au submit du formulaire email/password
+  // ── LOGIN étape 1 : envoie OTP ────────────────────────────────────────────
   const sendLoginOtp = useCallback(async (email, password) => {
     await authAPI.sendLoginOtp({ email, password })
-    // Lance juste la requête — le composant gère le passage à l'étape OTP
   }, [])
 
   // ── LOGIN étape 2 : vérifie OTP → connecte ───────────────────────────────
-  // Appelée par Login.jsx au submit du formulaire OTP
   const login = useCallback(async (email, password, otp) => {
     const res = await authAPI.login({ email, password, otp })
 
@@ -51,47 +81,36 @@ export function AuthProvider({ children }) {
 
     localStorage.setItem('token',    token)
     localStorage.setItem('userdata', JSON.stringify(userData))
-
     setUser(userData)
-    // Flag pour afficher l'écran de bienvenue
     sessionStorage.setItem('sf_fresh_login', '1')
-    // Pré-remplit IndexedDB en arrière-plan dès le login
-    // Ne bloque pas — les erreurs sont ignorées silencieusement
     warmCache(userData).catch(e => console.warn('[CacheWarmer]', e))
     return userData
   }, [])
 
-  // ── REGISTER étape 1 : envoie OTP ────────────────────────────────────────
+  // ── REGISTER étape 1 ──────────────────────────────────────────────────────
   const sendRegisterOtp = useCallback(async (email, name) => {
     await authAPI.sendRegisterOtp({ email, name })
   }, [])
 
-  // ── REGISTER étape 2 : vérifie OTP → crée le compte ──────────────────────
+  // ── REGISTER étape 2 ──────────────────────────────────────────────────────
   const register = useCallback(async (formData) => {
-    // formData = { name, email, password, otp }
-    const res = await authAPI.register(formData)
-
-    // Le register ne retourne pas de token (l'utilisateur doit se connecter)
-    // Si ton backend retourne un token directement, décommente ces lignes :
-    // const token = res.token ?? res.access_token
-    // if (token) { localStorage.setItem('token', token); setUser(res.user) }
-
-    return res
+    return authAPI.register(formData)
   }, [])
 
   // ── LOGOUT ────────────────────────────────────────────────────────────────
   const logout = useCallback(() => {
     localStorage.removeItem('token')
     localStorage.removeItem('userdata')
+    sessionStorage.removeItem('sf_fresh_login')
     setUser(null)
+    authAPI.logout?.().catch(() => {})
   }, [])
 
   return (
     <AuthContext.Provider value={{
       user, loading,
-      sendLoginOtp, login,       // login en 2 étapes
-      sendRegisterOtp, register, // register en 2 étapes
-      logout, setUser
+      login, logout,
+      sendLoginOtp, sendRegisterOtp, register,
     }}>
       {children}
     </AuthContext.Provider>

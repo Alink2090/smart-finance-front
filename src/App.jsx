@@ -21,16 +21,15 @@ import Welcome         from './pages/Welcome'
 
 // ── Loaders ───────────────────────────────────────────────────────────────────
 function Loader() {
+  // Avec le nouveau AuthContext, loading=true dure < 1 frame (localStorage sync)
+  // Ce loader ne devrait s'afficher que quelques millisecondes max
   return (
     <div style={{
       minHeight: '100vh', display: 'flex',
       alignItems: 'center', justifyContent: 'center',
       background: 'var(--bg)',
     }}>
-      <div style={{ textAlign: 'center' }}>
-        <div className="spinner" style={{ width: 32, height: 32, borderWidth: 3, margin: '0 auto 16px' }} />
-        <p style={{ color: 'var(--text2)', fontSize: 14 }}>Chargement…</p>
-      </div>
+      <div className="spinner" style={{ width: 28, height: 28, borderWidth: 2 }} />
     </div>
   )
 }
