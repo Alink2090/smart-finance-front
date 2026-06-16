@@ -1,12 +1,12 @@
 /**
- * offlineApi.js — Couche API aware offline
+ * offlineApi.js
  *
- * Corrections v2 :
- *  - N'utilise PLUS navigator.onLine directement
- *  - Exporte getOnlineStatus() qui lit le dernier état connu via un
- *    module-level singleton mis à jour par useNetwork
- *  - Fallback IDB systématique si fetch échoue (réseau mort mais
- *    navigator.onLine=true, ex: réseau captif)
+ * Approche simplifiée : on essaie TOUJOURS le réseau en premier.
+ * Si ça échoue (réseau coupé, timeout, erreur) → fallback IDB.
+ * On ne maintient plus de singleton _online qui pouvait rester bloqué.
+ *
+ * Avantage : au retour en ligne, le prochain appel API réussit automatiquement
+ * sans dépendre d'un état qui aurait raté sa mise à jour.
  */
 import { transactionsAPI, budgetsAPI, categoriesAPI, analyticsAPI } from './api.js'
 import {
@@ -27,58 +27,44 @@ import {
   saveCategoryExp, getCategoryExp,
 } from '../indexeddb/userDB.js'
 
-// ── État réseau partagé ───────────────────────────────────────────────────────
-// Mis à jour par setNetworkStatus() appelé depuis OfflineContext
-let _online = navigator.onLine
-
-export function setNetworkStatus(isOnline) {
-  _online = isOnline
+// Helper : tente le réseau, retourne null si hors ligne / erreur
+async function tryNetwork(fn) {
+  if (!navigator.onLine) return null
+  try { return await fn() }
+  catch { return null }
 }
-
-const isOnline = () => _online
 
 // ── Transactions ──────────────────────────────────────────────────────────────
 export const offlineTransactionsAPI = {
   getAll: async (userId) => {
-    if (isOnline()) {
-      try {
-        const res   = await transactionsAPI.getAll(userId)
-        const items = Array.isArray(res) ? res : (res?.data ?? res?.transactions ?? [])
-        cacheTransactions(userId, items).catch(() => {}) // fire & forget
-        return items
-      } catch {
-        // réseau mort malgré isOnline=true → fallback IDB
-      }
+    const res = await tryNetwork(() => transactionsAPI.getAll(userId))
+    if (res !== null) {
+      const items = Array.isArray(res) ? res : (res?.data ?? res?.transactions ?? [])
+      cacheTransactions(userId, items).catch(() => {})
+      return items
     }
     return getTransactions(userId)
   },
 
   create: async (userId, data) => {
-    if (isOnline()) {
-      try {
-        const res  = await transactionsAPI.create({ user_id: userId, ...data })
-        const item = res?.data ?? res
-        if (item?.id) cacheTransactions(userId, [item]).catch(() => {})
-        return item
-      } catch {}
+    const res = await tryNetwork(() => transactionsAPI.create({ user_id: userId, ...data }))
+    if (res !== null) {
+      const item = res?.data ?? res
+      if (item?.id) cacheTransactions(userId, [item]).catch(() => {})
+      return item
     }
     return createTransaction(userId, data)
   },
 
   update: async (id, data, userId) => {
-    if (isOnline()) {
-      try {
-        const res = await transactionsAPI.update(id, { user_id: userId, ...data })
-        return res?.data ?? res
-      } catch {}
-    }
+    const res = await tryNetwork(() => transactionsAPI.update(id, { user_id: userId, ...data }))
+    if (res !== null) return res?.data ?? res
     return updateTransaction(id, data)
   },
 
   delete: async (id, userId) => {
-    if (isOnline()) {
-      try { await transactionsAPI.delete(id, userId); return } catch {}
-    }
+    const res = await tryNetwork(() => transactionsAPI.delete(id, userId))
+    if (res !== null) return
     return deleteTransaction(id, userId)
   },
 }
@@ -86,35 +72,30 @@ export const offlineTransactionsAPI = {
 // ── Budgets ───────────────────────────────────────────────────────────────────
 export const offlineBudgetsAPI = {
   getAll: async (userId) => {
-    if (isOnline()) {
-      try {
-        const res   = await budgetsAPI.getAll(userId)
-        const items = Array.isArray(res) ? res : (res?.data ?? res?.budgets ?? [])
-        cacheBudgets(userId, items).catch(() => {})
-        return items
-      } catch {}
+    const res = await tryNetwork(() => budgetsAPI.getAll(userId))
+    if (res !== null) {
+      const items = Array.isArray(res) ? res : (res?.data ?? res?.budgets ?? [])
+      cacheBudgets(userId, items).catch(() => {})
+      return items
     }
     return getBudgets(userId)
   },
 
   create: async (data) => {
-    if (isOnline()) {
-      try { return await budgetsAPI.create(data) } catch {}
-    }
+    const res = await tryNetwork(() => budgetsAPI.create(data))
+    if (res !== null) return res
     return createBudget(data.user_id, data)
   },
 
   update: async (id, data) => {
-    if (isOnline()) {
-      try { return await budgetsAPI.update(id, data) } catch {}
-    }
+    const res = await tryNetwork(() => budgetsAPI.update(id, data))
+    if (res !== null) return res
     return updateBudget(id, data)
   },
 
   delete: async (id, userId) => {
-    if (isOnline()) {
-      try { await budgetsAPI.delete(id, userId); return } catch {}
-    }
+    const res = await tryNetwork(() => budgetsAPI.delete(id, userId))
+    if (res !== null) return
     return deleteBudget(id, userId)
   },
 }
@@ -122,94 +103,66 @@ export const offlineBudgetsAPI = {
 // ── Categories ────────────────────────────────────────────────────────────────
 export const offlineCategoriesAPI = {
   getAll: async (userId) => {
-    if (isOnline()) {
-      try {
-        const res   = await categoriesAPI.getAll(userId)
-        const items = Array.isArray(res) ? res : (res?.data ?? res?.categories ?? [])
-        cacheCategories(userId, items).catch(() => {})
-        return items
-      } catch {}
+    const res = await tryNetwork(() => categoriesAPI.getAll(userId))
+    if (res !== null) {
+      const items = Array.isArray(res) ? res : (res?.data ?? res?.categories ?? [])
+      cacheCategories(userId, items).catch(() => {})
+      return items
     }
     return getCategories(userId)
   },
 
   create: async (data) => {
-    if (isOnline()) {
-      try { return await categoriesAPI.create(data) } catch {}
-    }
+    const res = await tryNetwork(() => categoriesAPI.create(data))
+    if (res !== null) return res
     return createCategory(data.user_id, data)
   },
 
   delete: async (id) => {
-    if (isOnline()) {
-      try { await categoriesAPI.delete(id); return } catch {}
-    }
+    const res = await tryNetwork(() => categoriesAPI.delete(id))
+    if (res !== null) return
     return deleteCategory(id)
   },
 }
 
-// ── Analytics (read-only — cache snapshot en IDB) ─────────────────────────────
-
+// ── Analytics ─────────────────────────────────────────────────────────────────
 export const offlineAnalyticsAPI = {
   dashboard: async (userId) => {
-    if (isOnline()) {
-      try {
-        // analyticsAPI.dashboard retourne directement { total_income, balance, ... }
-        const res = await analyticsAPI.dashboard(userId)
-        if (res) await saveDashboard(res).catch(() => {})
-        return res
-      } catch {}
+    const res = await tryNetwork(() => analyticsAPI.dashboard(userId))
+    if (res !== null) {
+      saveDashboard(res).catch(() => {})
+      return res
     }
     const snap = await getDashboard()
     return snap?.data ?? null
   },
 
   monthlyExpenses: async (userId, months) => {
-    if (isOnline()) {
-      try {
-        // Backend retourne { data: [...], metrics: { avg_monthly_expense, ... } }
-        const res = await analyticsAPI.monthlyExpenses(userId, months)
-        // Cache: on sauvegarde l'objet complet pour préserver metrics
-        if (res) await saveMonthly(res).catch(() => {})
-        return res
-      } catch {}
+    const res = await tryNetwork(() => analyticsAPI.monthlyExpenses(userId, months))
+    if (res !== null) {
+      saveMonthly(res).catch(() => {})
+      return res
     }
     const snap = await getMonthly()
     return snap?.data ?? null
   },
 
   categoryExpenses: async (userId) => {
-    if (isOnline()) {
-      try {
-        // Backend retourne { data: [...], top_category: {...} }
-        const res = await analyticsAPI.categoryExpenses(userId)
-        if (res) await saveCategoryExp(res).catch(() => {})
-        return res
-      } catch {}
+    const res = await tryNetwork(() => analyticsAPI.categoryExpenses(userId))
+    if (res !== null) {
+      saveCategoryExp(res).catch(() => {})
+      return res
     }
     const snap = await getCategoryExp()
     return snap?.data ?? null
   },
 
   insights: async (userId) => {
-    if (isOnline()) {
-      try {
-        const res = await analyticsAPI.insights(userId)
-        return res?.data ?? res ?? { insights: [] }
-      } catch {}
-    }
+    const res = await tryNetwork(() => analyticsAPI.insights(userId))
+    if (res !== null) return res
     return { insights: [] }
   },
-
-  // Reports page
-  getReports: async (userId) => {
-    if (isOnline()) {
-      try {
-        const res = await analyticsAPI.dashboard(userId)
-        return res?.data ?? res
-      } catch {}
-    }
-    const snap = await getDashboard()
-    return snap?.data ?? null
-  },
 }
+
+// Compatibilité : setNetworkStatus gardé pour ne pas casser les imports existants
+export function setNetworkStatus() {}

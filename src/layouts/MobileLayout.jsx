@@ -63,8 +63,7 @@ const MORE_ITEMS = [
   { to: '/analytics',   label: 'Analytics',  emoji: '📊', sub: 'Tendances & projections' },
   { to: '/insights',   label: 'Insights',   emoji: '💡', sub: 'Alertes & conseils' },
   { to: '/reports',    label: 'Rapports',   emoji: '📄', sub: 'Export CSV / PDF' },
-  { to: '/categories', label: 'Catégories', emoji: '🏷️', sub: 'Gérer les catégories' },
-  { to: '/settings',   label: 'Paramètres',  emoji: '⚙️', sub: 'PIN, sync & offline' },
+  { to: '/settings',   label: 'Paramètres',  emoji: '⚙️', sub: 'PIN & offline' },
 ]
 
 // ── Header ───────────────────────────────────────────────────────────────────
