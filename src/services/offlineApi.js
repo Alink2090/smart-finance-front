@@ -130,8 +130,12 @@ export const offlineAnalyticsAPI = {
   dashboard: async (userId) => {
     const res = await tryNetwork(() => analyticsAPI.dashboard(userId))
     if (res !== null) {
-      saveDashboard(res).catch(() => {})
-      return res
+      // Normalise : Django peut renvoyer { data: {...} } ou l'objet directement
+      const data = res?.data && typeof res.data === 'object' && 'total_income' in res.data
+        ? res.data
+        : res?.total_income !== undefined ? res : res?.data ?? res
+      saveDashboard(data).catch(() => {})
+      return data
     }
     const snap = await getDashboard()
     return snap?.data ?? null
@@ -140,8 +144,10 @@ export const offlineAnalyticsAPI = {
   monthlyExpenses: async (userId, months) => {
     const res = await tryNetwork(() => analyticsAPI.monthlyExpenses(userId, months))
     if (res !== null) {
-      saveMonthly(res).catch(() => {})
-      return res
+      // Normalise : garde l'objet complet { data: [], metrics: {} }
+      const payload = Array.isArray(res) ? { data: res, metrics: null } : res
+      saveMonthly(payload).catch(() => {})
+      return payload
     }
     const snap = await getMonthly()
     return snap?.data ?? null
@@ -150,8 +156,9 @@ export const offlineAnalyticsAPI = {
   categoryExpenses: async (userId) => {
     const res = await tryNetwork(() => analyticsAPI.categoryExpenses(userId))
     if (res !== null) {
-      saveCategoryExp(res).catch(() => {})
-      return res
+      const payload = Array.isArray(res) ? { data: res } : res
+      saveCategoryExp(payload).catch(() => {})
+      return payload
     }
     const snap = await getCategoryExp()
     return snap?.data ?? null

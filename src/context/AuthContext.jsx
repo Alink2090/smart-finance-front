@@ -9,108 +9,75 @@ export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // ── Restore session on app load ───────────────────────────────────────────
   useEffect(() => {
-    const token    = localStorage.getItem('token')
-    const userdata = localStorage.getItem('userdata')
-
-    // Pas de token → pas connecté, affiche immédiatement
-    if (!token) {
+    // EN LIGNE : on ne restaure JAMAIS la session depuis localStorage.
+    // L'utilisateur doit toujours s'authentifier avec email + OTP.
+    // EN HORS LIGNE : on restaure la session pour permettre le PIN.
+    if (navigator.onLine) {
+      // Online → force reconnexion, efface toute session précédente
+      _clearSession()
       setLoading(false)
       return
     }
 
-    // ✅ CORRECTION CLÉ : restaure l'utilisateur depuis localStorage IMMÉDIATEMENT
-    // sans attendre le réseau → plus d'écran noir
-    if (userdata) {
-      try {
-        const parsed = JSON.parse(userdata)
-        setUser(parsed)
-      } catch {}
+    // Offline → restaure le profil depuis localStorage pour le PIN screen
+    const userdata = localStorage.getItem('userdata')
+    if (!userdata) { setLoading(false); return }
+    try {
+      setUser(JSON.parse(userdata))
+    } catch {
+      _clearSession()
     }
-    // Fin du loading immédiat — l'app s'affiche tout de suite
     setLoading(false)
-
-    // Validation silencieuse en arrière-plan (pas bloquante)
-    // Si le token est expiré → logout propre
-    authAPI.profile({ userdata })
-      .then(data => {
-        const u = data?.user ?? data
-        if (u) {
-          setUser(u)
-          localStorage.setItem('userdata', JSON.stringify(u))
-          if (navigator.onLine) warmCache(u).catch(() => {})
-        }
-      })
-      .catch(err => {
-        // 401 = token expiré → logout
-        // Autre erreur réseau → on garde la session locale (mode offline)
-        if (err.message?.includes('401') || err.message?.includes('Unauthorized')) {
-          localStorage.removeItem('token')
-          localStorage.removeItem('userdata')
-          setUser(null)
-        }
-        // Sinon : on reste connecté avec les données locales
-      })
   }, [])
 
-  // ── Listen for 401 fired by API interceptor ───────────────────────────────
+  // 401 global : déconnecte immédiatement
   useEffect(() => {
-    const handler = () => {
-      setUser(null)
-      localStorage.removeItem('token')
-      localStorage.removeItem('userdata')
-    }
+    const handler = () => { _clearSession(); setUser(null) }
     window.addEventListener('auth:logout', handler)
     return () => window.removeEventListener('auth:logout', handler)
   }, [])
 
-  // ── LOGIN étape 1 : envoie OTP ────────────────────────────────────────────
   const sendLoginOtp = useCallback(async (email, password) => {
-    await authAPI.sendLoginOtp({ email, password })
+    return authAPI.sendLoginOtp({ email, password })
   }, [])
 
-  // ── LOGIN étape 2 : vérifie OTP → connecte ───────────────────────────────
   const login = useCallback(async (email, password, otp) => {
-    const res = await authAPI.login({ email, password, otp })
+    const res      = await authAPI.login({ email, password, otp })
+    const token    = res?.token ?? res?.access_token
+    const userData = res?.user  ?? res?.data ?? res
 
-    const token    = res.token ?? res.access_token
-    const userData = res.user  ?? res.data
-
-    if (!token) throw new Error('No token received from server')
+    if (!token) throw new Error('Token manquant dans la réponse serveur')
 
     localStorage.setItem('token',    token)
     localStorage.setItem('userdata', JSON.stringify(userData))
     setUser(userData)
-    warmCache(userData).catch(e => console.warn('[CacheWarmer]', e))
+    warmCache(userData).catch(() => {})
     return userData
   }, [])
 
-  // ── REGISTER étape 1 ──────────────────────────────────────────────────────
   const sendRegisterOtp = useCallback(async (email, name) => {
-    await authAPI.sendRegisterOtp({ email, name })
+    return authAPI.sendRegisterOtp({ email, name })
   }, [])
 
-  // ── REGISTER étape 2 ──────────────────────────────────────────────────────
   const register = useCallback(async (formData) => {
     return authAPI.register(formData)
   }, [])
 
-  // ── LOGOUT ────────────────────────────────────────────────────────────────
   const logout = useCallback(() => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('userdata')
+    _clearSession()
     setUser(null)
     authAPI.logout?.().catch(() => {})
   }, [])
 
   return (
-    <AuthContext.Provider value={{
-      user, loading,
-      login, logout,
-      sendLoginOtp, sendRegisterOtp, register,
-    }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, sendLoginOtp, sendRegisterOtp, register }}>
       {children}
     </AuthContext.Provider>
   )
+}
+
+function _clearSession() {
+  localStorage.removeItem('token')
+  // On NE supprime PAS userdata — nécessaire pour le PIN offline
 }

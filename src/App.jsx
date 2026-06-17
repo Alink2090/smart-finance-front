@@ -48,20 +48,38 @@ function PublicRoute({ children }) {
 // ── Gate PIN hors ligne ───────────────────────────────────────────────────────
 // Reçoit online depuis OfflineContext (pas navigator.onLine)
 function OfflineGate({ children }) {
-  const { user }  = useAuth()
-  const { online } = useOffline()  // ← état réseau vérifié par ping réel
-  const { locked, checking, pinError, pinVerifying, submitPin } = useOfflineAuth(user, online)
+  const { user }   = useAuth()
+  const { online } = useOffline()
+  const { locked, checking, noPin, pinError, pinVerifying, submitPin } = useOfflineAuth(user, online)
 
-  // Tant que le check initial n'est pas terminé → spinner discret
   if (checking) return (
-    <div style={{
-      minHeight: '100vh', display: 'flex',
-      alignItems: 'center', justifyContent: 'center',
-      background: 'var(--bg)',
-    }}>
-      <div className="spinner" style={{ width: 24, height: 24, borderWidth: 2 }} />
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg)' }}>
+      <div className="spinner" style={{ width:24, height:24, borderWidth:2 }} />
     </div>
   )
+
+  if (locked && noPin) {
+    // Offline sans PIN configuré → message explicatif
+    return (
+      <div style={{
+        minHeight:'100vh', display:'flex', flexDirection:'column',
+        alignItems:'center', justifyContent:'center',
+        background:'var(--bg)', padding:32, textAlign:'center',
+      }}>
+        <div style={{ fontSize:56, marginBottom:20 }}>🔒</div>
+        <h2 style={{ fontSize:22, fontWeight:800, color:'var(--text)', marginBottom:12, letterSpacing:'-.03em' }}>
+          Accès hors ligne désactivé
+        </h2>
+        <p style={{ fontSize:14, color:'var(--text2)', lineHeight:1.7, maxWidth:280, marginBottom:28 }}>
+          Pour accéder à l'application sans connexion, vous devez d'abord activer le mode hors ligne
+          et configurer un code PIN dans les Paramètres.
+        </p>
+        <p style={{ fontSize:12, color:'var(--text3)' }}>
+          Connectez-vous au réseau pour accéder à l'application.
+        </p>
+      </div>
+    )
+  }
 
   if (locked) {
     return (

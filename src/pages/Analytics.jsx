@@ -97,12 +97,15 @@ export default function Analytics() {
         offlineAnalyticsAPI.categoryExpenses(user.id),
       ])
 
-      setDashboard(dash ?? null)
+      const dashData = dash?.total_income !== undefined ? dash
+        : dash?.data?.total_income !== undefined ? dash.data : dash ?? null
+      setDashboard(dashData)
 
       // Le back retourne { data: [...], metrics: {...} }
-      // monthly: { data: [...], metrics: {...} } ou tableau direct
-      setMonthly(Array.isArray(mon) ? mon : (mon?.data ?? []))
-      setMetrics(Array.isArray(mon) ? null : (mon?.metrics ?? null))
+      const monData = Array.isArray(mon) ? mon : (mon?.data ?? [])
+      const metrics_ = Array.isArray(mon) ? null : (mon?.metrics ?? null)
+      setMonthly(monData)
+      setMetrics(metrics_)
 
       // Le back retourne { data: [...], top_category: {...} }
       setCatData(cat?.data ?? [])

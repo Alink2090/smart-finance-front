@@ -777,7 +777,13 @@ export default function Budgets() {
               fontFamily:'inherit', fontWeight:700, fontSize:14, color:'white',
               background:mainTab==='saving_global'?'linear-gradient(135deg,#a78bfa,#7c3aed)':mainTab==='saving'?'linear-gradient(135deg,#22d3a0,#059669)':'linear-gradient(135deg,#7c6cfc,#5b4de8)',
             }}>
-              {mainTab==='saving_global'?'🌍 Créer': mainTab==='saving' ? '🏦 Créer' : '💸 Créer'}
+              {
+                mainTab === 'saving_global'
+                  ? '🌍 Créer'
+                  : mainTab === 'saving'
+                    ? '🏦 Créer'
+                    : '💸 Créer'
+              }
             </button>
           </div>
         ) : (

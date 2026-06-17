@@ -405,13 +405,26 @@ export default function Dashboard() {
     ])
     .then(([dash, mon, cat, ins]) => {
       if (!active) return
-      // dashboard: objet direct { total_income, balance, ... }
-      setDashboard(dash ?? null)
-      // monthly: { data: [...], metrics: {...} } ou tableau direct
+
+      // Dashboard : normalise toutes les formes possibles du backend
+      // Forme 1 : { total_income, balance, ... }        → direct
+      // Forme 2 : { data: { total_income, ... }, ... }  → unwrap .data
+      // Forme 3 : { success, data: { ... } }            → unwrap .data
+      const dashData = dash?.total_income !== undefined
+        ? dash
+        : dash?.data?.total_income !== undefined
+          ? dash.data
+          : dash ?? null
+      setDashboard(dashData)
+
+      // Monthly : { data: [...], metrics: {...} }
       setMonthly(Array.isArray(mon) ? mon : (mon?.data ?? []))
-      // categoryExpenses: { data: [...] } ou tableau direct
-      setCatExp(Array.isArray(cat) ? cat : (cat?.data ?? []))
-      // insights: { insights: [...] }
+
+      // Cat expenses : { data: [...] }
+      const catArr = Array.isArray(cat) ? cat : (cat?.data ?? [])
+      setCatExp(catArr)
+
+      // Insights
       setInsights((ins?.insights ?? []).slice(0, 3))
     })
     .catch(e => { if (active) setError(e.message) })
