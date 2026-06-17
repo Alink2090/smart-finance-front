@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { createPortal } from 'react-dom'
-import { budgetsAPI, categoriesAPI } from '../services/api'
+import { offlineBudgetsAPI, offlineCategoriesAPI } from '../services/offlineApi'
 import { useToast } from '../context/ToastContext'
 import { useAuth } from '../context/AuthContext'
 
@@ -579,64 +579,60 @@ function GlobalSavingCard({ b, onEdit, onDelete, idx }) {
 export default function Budgets() {
   const { user } = useAuth()
   const { success, error: toastErr } = useToast()
-  const isMobile = useIsMobile()
 
-  const [budgets, setBudgets] = useState([])
-  const [categories, setCategories] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [err, setErr] = useState(null)
-
-  const [mainTab, setMainTab] = useState('budget')
-  const [subTab, setSubTab] = useState('active')
-  const [search, setSearch] = useState('')
-  const [filterCat, setFilterCat] = useState('')
-  const [sortBy, setSortBy] = useState('status')
-  const [viewMode, setViewMode] = useState('grid')
-
-  const [showForm, setShowForm] = useState(false)
-  const [editItem, setEditItem] = useState(null)
-  const [defaultType, setDefaultType] = useState('budget')
+  const [budgets,       setBudgets]       = useState([])
+  const [categories,    setCategories]    = useState([])
+  const [loading,       setLoading]       = useState(true)
+  const [err,           setErr]           = useState(null)
+  const [showForm,      setShowForm]      = useState(false)
+  const [editItem,      setEditItem]      = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [defaultType,   setDefaultType]   = useState('budget')
+  const [mainTab,       setMainTab]       = useState('budget')
+  const [subTab,        setSubTab]        = useState('active')
+  const [viewMode,      setViewMode]      = useState('grid')
+  const [search,        setSearch]        = useState('')
+  const [filterCat,     setFilterCat]     = useState('')
+  const [sortBy,        setSortBy]        = useState('status')
+
+  const isMobile = useIsMobile()
 
   const load = useCallback(async () => {
     if (!user?.id) return
     setLoading(true); setErr(null)
     try {
-      const [bRes, cRes] = await Promise.all([
-        budgetsAPI.getAll(user.id),
-        categoriesAPI.getAll(user.id)
-      ])
+      const [bRes, cRes] = await Promise.all([offlineBudgetsAPI.getAll(user.id), offlineCategoriesAPI.getAll(user.id)])
       setBudgets(Array.isArray(bRes) ? bRes : (bRes?.data ?? bRes?.budgets ?? []))
       setCategories(Array.isArray(cRes) ? cRes : (cRes?.data ?? cRes?.categories ?? []))
-    } catch (error) { setErr(error.message) }
+    } catch(e) { setErr(e.message) }
     finally { setLoading(false) }
   }, [user?.id])
 
   useEffect(() => { load() }, [load])
 
-  const handleSave = async (data) => {
+  const handleSave = async data => {
     try {
       if (editItem) {
-        await budgetsAPI.update(editItem.id, { user_id: user.id, ...data })
-        success('Enveloppe mise à jour')
+        await offlineBudgetsAPI.update(editItem.id, { user_id:user.id, ...data })
+        success('Mis à jour')
       } else {
-        await budgetsAPI.create({ user_id: user.id, ...data })
-        success('Enveloppe créée')
+        await offlineBudgetsAPI.create({ user_id:user.id, ...data })
+        success(data.budget_type==='saving_global' ? '🌍 Épargne globale créée !' : data.budget_type==='saving' ? '🏦 Épargne créée !' : '💸 Budget créé !')
       }
       setShowForm(false); setEditItem(null); load()
-    } catch (e) { toastErr(e.message) }
+    } catch(e) { toastErr(e.message) }
   }
 
   const handleDelete = async () => {
     try {
-      await budgetsAPI.delete(confirmDelete, user.id)
-      success('Enveloppe supprimée')
+      await offlineBudgetsAPI.delete(confirmDelete, user.id)
+      success('Supprimé')
       setConfirmDelete(null); load()
-    } catch (e) { toastErr(e.message) }
+    } catch(e) { toastErr(e.message) }
   }
 
-  const openNew = (type) => { setDefaultType(type); setEditItem(null); setShowForm(true) }
-  const openEdit = (b) => { setEditItem(b); setShowForm(true) }
+  const openNew  = type => { setDefaultType(type); setEditItem(null); setShowForm(true) }
+  const openEdit = item => { setEditItem(item); setDefaultType(item.budget_type ?? 'budget'); setShowForm(true) }
 
   const allBudgets      = useMemo(() => budgets.filter(b=>(b.budget_type??'budget')==='budget').map(b=>({...b,_status:getStatus(b)})), [budgets])
   const allSavings      = useMemo(() => budgets.filter(b=>b.budget_type==='saving').map(b=>({...b,_status:getStatus(b)})), [budgets])
@@ -779,9 +775,15 @@ export default function Budgets() {
             <button onClick={()=>openNew(mainTab)} style={{
               padding:'12px 24px', border:'none', borderRadius:12, cursor:'pointer',
               fontFamily:'inherit', fontWeight:700, fontSize:14, color:'white',
-              background:mainTab==='saving_global'?'linear-gradient(135deg,#a78bfa,#7c3aed)':mainTab==='saving'?'linear-gradient(135deg,#22d3a0,#059669)':'linear-gradient(135deg,#7c6cfc,#5b4de8)'
+              background:mainTab==='saving_global'?'linear-gradient(135deg,#a78bfa,#7c3aed)':mainTab==='saving'?'linear-gradient(135deg,#22d3a0,#059669)':'linear-gradient(135deg,#7c6cfc,#5b4de8)',
             }}>
-              {mainTab==='saving_global'?'🌍 Créer': mainTab==='saving' ? '🏦 Créer' : '💸 Créer' }
+              {
+                mainTab === 'saving_global'
+                  ? '🌍 Créer'
+                  : mainTab === 'saving'
+                    ? '🏦 Créer'
+                    : '💸 Créer'
+              }
             </button>
           </div>
         ) : (

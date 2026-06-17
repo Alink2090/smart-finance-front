@@ -1,5 +1,4 @@
 
-import { useIsMobile } from '../hooks/useIsMobile'
 /**
  * Reports.jsx — VERSION ALLÉGÉE
  * Aucun calcul côté front — tout vient du back.
@@ -7,8 +6,9 @@ import { useIsMobile } from '../hooks/useIsMobile'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { analyticsAPI, transactionsAPI } from '../services/api'
+import { offlineAnalyticsAPI, offlineTransactionsAPI } from '../services/offlineApi'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const fmt     = n => `${new Intl.NumberFormat('fr-FR').format(Number(n) || 0)} FCFA`
 const fmtFull = n => `${new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(Number(n) || 0)} FCFA`
@@ -65,13 +65,13 @@ export default function Reports() {
     setLoading(true); setErr(null)
     try {
       const [dash, mon, cat, t] = await Promise.all([
-        analyticsAPI.dashboard(user.id),
-        analyticsAPI.monthlyExpenses(user.id, 12),
-        analyticsAPI.categoryExpenses(user.id),
-        transactionsAPI.getAll(user.id),
+        offlineAnalyticsAPI.dashboard(user.id),
+        offlineAnalyticsAPI.monthlyExpenses(user.id, 12),
+        offlineAnalyticsAPI.categoryExpenses(user.id),
+        offlineTransactionsAPI.getAll(user.id),
       ])
-      setDashboard(dash?.data ?? dash)
-      setMonthly(mon?.data ?? [])
+      setDashboard(dash ?? null)
+      setMonthly(Array.isArray(mon) ? mon : (mon?.data ?? []))
       setMonthlyMeta(mon?.metrics ?? null)
       setCatData(cat?.data ?? [])
       setTopCat(cat?.top_category ?? null)

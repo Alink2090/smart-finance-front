@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { createPortal } from 'react-dom'
-import { categoriesAPI } from '../services/api'
+import { offlineCategoriesAPI } from '../services/offlineApi'
 import { useToast } from '../context/ToastContext'
 import { useAuth } from '../context/AuthContext'
 
@@ -287,7 +287,7 @@ export default function Categories() {
     setLoading(true)
     setErr(null)
     try {
-      const res = await categoriesAPI.getAll(user.id)
+      const res = await offlineCategoriesAPI.getAll(user.id)
       setCategories(Array.isArray(res) ? res : (res?.data ?? res?.categories ?? []))
     } catch (e) {
       setErr(e.message)
@@ -301,7 +301,7 @@ export default function Categories() {
   // ── Création ───────────────────────────────
   const handleSave = async (data) => {
     try {
-      await categoriesAPI.create({ ...data, user_id: user.id })
+      await offlineCategoriesAPI.create({ ...data, user_id: user.id })
       success('Catégorie créée')
       setShowForm(false)
       load()
@@ -313,7 +313,7 @@ export default function Categories() {
   // ── Suppression ────────────────────────────
   const handleDelete = async () => {
     try {
-      await categoriesAPI.delete(confirmId)
+      await offlineCategoriesAPI.delete(confirmId)
       success('Catégorie supprimée')
       setConfirmId(null)
       load()

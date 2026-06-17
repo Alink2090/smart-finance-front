@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { analyticsAPI } from '../services/api'
+import { offlineAnalyticsAPI } from '../services/offlineApi'
 import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { InsightCard } from '../components/ui'
@@ -398,16 +398,33 @@ export default function Dashboard() {
     let active = true
     setLoading(true)
     Promise.all([
-      analyticsAPI.dashboard(user.id),
-      analyticsAPI.monthlyExpenses(user.id, 6),
-      analyticsAPI.categoryExpenses(user.id),
-      analyticsAPI.insights(user.id),
+      offlineAnalyticsAPI.dashboard(user.id),
+      offlineAnalyticsAPI.monthlyExpenses(user.id, 6),
+      offlineAnalyticsAPI.categoryExpenses(user.id),
+      offlineAnalyticsAPI.insights(user.id),
     ])
     .then(([dash, mon, cat, ins]) => {
       if (!active) return
-      setDashboard(dash?.data ?? dash)
-      setMonthly(mon?.data ?? [])
-      setCatExp(cat?.data ?? [])
+
+      // Dashboard : normalise toutes les formes possibles du backend
+      // Forme 1 : { total_income, balance, ... }        → direct
+      // Forme 2 : { data: { total_income, ... }, ... }  → unwrap .data
+      // Forme 3 : { success, data: { ... } }            → unwrap .data
+      const dashData = dash?.total_income !== undefined
+        ? dash
+        : dash?.data?.total_income !== undefined
+          ? dash.data
+          : dash ?? null
+      setDashboard(dashData)
+
+      // Monthly : { data: [...], metrics: {...} }
+      setMonthly(Array.isArray(mon) ? mon : (mon?.data ?? []))
+
+      // Cat expenses : { data: [...] }
+      const catArr = Array.isArray(cat) ? cat : (cat?.data ?? [])
+      setCatExp(catArr)
+
+      // Insights
       setInsights((ins?.insights ?? []).slice(0, 3))
     })
     .catch(e => { if (active) setError(e.message) })

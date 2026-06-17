@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { transactionsAPI, categoriesAPI } from '../services/api'
+import { offlineTransactionsAPI, offlineCategoriesAPI } from '../services/offlineApi'
 import { useToast } from '../context/ToastContext'
 import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -335,6 +335,111 @@ const TYPE_BADGE = {
 }
 
 // ── Page principale ───────────────────────────────────────────────────────────
+
+// ── Filtres avancés mobile ────────────────────────────────────────────────────
+function AdvancedFilters({ filters, setFilter, resetFilters, hasFilter, incomeCategories, expenseCategories }) {
+  const [open, setOpen] = window.__txAdvFilters ?? (window.__txAdvFilters = [false, null])
+  const [isOpen, setIsOpen] = useState(false)
+
+  const activeCount = [
+    filters.dateFrom, filters.dateTo, filters.amountMin, filters.amountMax,
+    filters.income_category, filters.expense_category,
+    filters.sort !== 'date_desc' ? filters.sort : '',
+  ].filter(Boolean).length
+
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+        <button onClick={() => setIsOpen(p => !p)} style={{
+          display:'flex', alignItems:'center', gap:6,
+          padding:'7px 14px', borderRadius:100,
+          border:`1px solid ${isOpen || activeCount > 0 ? 'rgba(124,108,252,.4)' : 'var(--border)'}`,
+          background: isOpen || activeCount > 0 ? 'rgba(124,108,252,.12)' : 'var(--surface2)',
+          color: isOpen || activeCount > 0 ? 'var(--accent2)' : 'var(--text2)',
+          fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
+          WebkitTapHighlightColor:'transparent',
+        }}>
+          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+          </svg>
+          Filtres
+          {activeCount > 0 && (
+            <span style={{ width:18, height:18, borderRadius:'50%', background:'var(--accent)', color:'white', fontSize:10, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              {activeCount}
+            </span>
+          )}
+        </button>
+        {/* Tri rapide */}
+        <select className="input" style={{ flex:1, fontSize:13, height:36, padding:'0 12px' }}
+          value={filters.sort} onChange={e => setFilter('sort', e.target.value)}>
+          <option value="date_desc">Date ↓</option>
+          <option value="date_asc">Date ↑</option>
+          <option value="amount_desc">Montant ↓</option>
+          <option value="amount_asc">Montant ↑</option>
+        </select>
+        {hasFilter && (
+          <button onClick={resetFilters} style={{
+            padding:'7px 12px', borderRadius:100,
+            border:'1px solid rgba(245,71,106,.3)', background:'rgba(245,71,106,.08)',
+            color:'#f5476a', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+            whiteSpace:'nowrap', WebkitTapHighlightColor:'transparent',
+          }}>Effacer</button>
+        )}
+      </div>
+
+      {/* Panneau avancé */}
+      {isOpen && (
+        <div style={{
+          marginTop:10, padding:16,
+          background:'var(--surface2)', borderRadius:16,
+          border:'1px solid var(--border)',
+          display:'flex', flexDirection:'column', gap:12,
+          animation:'fadeIn .2s ease',
+        }}>
+          {/* Catégories */}
+          <div>
+            <div style={{ fontSize:11, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:6 }}>Source / Catégorie</div>
+            <div style={{ display:'flex', gap:8 }}>
+              <select className="input" style={{ flex:1, fontSize:13 }}
+                value={filters.income_category} onChange={e => setFilter('income_category', e.target.value)}>
+                <option value="">Toutes sources</option>
+                {incomeCategories.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+              </select>
+              <select className="input" style={{ flex:1, fontSize:13 }}
+                value={filters.expense_category} onChange={e => setFilter('expense_category', e.target.value)}>
+                <option value="">Toutes dest.</option>
+                {expenseCategories.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+              </select>
+            </div>
+          </div>
+          {/* Dates */}
+          <div>
+            <div style={{ fontSize:11, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:6 }}>Période</div>
+            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              <input className="input" type="date" style={{ flex:1, fontSize:13 }}
+                value={filters.dateFrom} onChange={e => setFilter('dateFrom', e.target.value)} />
+              <span style={{ color:'var(--text3)', fontSize:12 }}>→</span>
+              <input className="input" type="date" style={{ flex:1, fontSize:13 }}
+                value={filters.dateTo} onChange={e => setFilter('dateTo', e.target.value)} />
+            </div>
+          </div>
+          {/* Montants */}
+          <div>
+            <div style={{ fontSize:11, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:6 }}>Montant (FCFA)</div>
+            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              <input className="input" type="number" min="0" placeholder="Min" style={{ flex:1, fontSize:13 }}
+                value={filters.amountMin} onChange={e => setFilter('amountMin', e.target.value)} />
+              <span style={{ color:'var(--text3)', fontSize:12 }}>—</span>
+              <input className="input" type="number" min="0" placeholder="Max" style={{ flex:1, fontSize:13 }}
+                value={filters.amountMax} onChange={e => setFilter('amountMax', e.target.value)} />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Transactions() {
   const { user }  = useAuth()
   const { success, error: toastErr } = useToast()
@@ -355,8 +460,8 @@ export default function Transactions() {
     setLoading(true); setErr(null)
     try {
       const [txRes, catRes] = await Promise.all([
-        transactionsAPI.getAll(user.id),
-        categoriesAPI.getAll(user.id),
+        offlineTransactionsAPI.getAll(user.id),
+        offlineCategoriesAPI.getAll(user.id),
       ])
       setTxs(Array.isArray(txRes) ? txRes : (txRes?.data ?? txRes?.transactions ?? []))
       const cats = Array.isArray(catRes) ? catRes : (catRes?.data ?? catRes?.categories ?? [])
@@ -371,10 +476,10 @@ export default function Transactions() {
   const handleSave = async data => {
     try {
       if (editTx) {
-        await transactionsAPI.update(editTx.id, { user_id: user.id, ...data })
+        await offlineTransactionsAPI.update(editTx.id, data, user.id)
         success('Transaction mise à jour')
       } else {
-        await transactionsAPI.create({ user_id: user.id, ...data })
+        await offlineTransactionsAPI.create(user.id, data)
         success(data.type === 'transfer' ? '↔ Transfert enregistré' : 'Transaction ajoutée')
       }
       setShowForm(false); setEditTx(null); load()
@@ -383,7 +488,7 @@ export default function Transactions() {
 
   const handleDelete = async () => {
     try {
-      await transactionsAPI.delete(confirmId, user.id)
+      await offlineTransactionsAPI.delete(confirmId, user.id)
       success('Transaction supprimée')
       setConfirmId(null); load()
     } catch (e) { toastErr(e.message) }
@@ -401,13 +506,13 @@ export default function Transactions() {
   const totalExpense  = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount ?? 0), 0)
   const totalTransfer = filtered.filter(t => t.type === 'transfer').reduce((s, t) => s + (t.amount ?? 0), 0)
 
-  const isMobile = useIsMobile()
-
   const getAccent = tx => {
     if (tx.type === 'transfer') return '#38bdf8'
     if (tx.type === 'income')   return tx.income_category?.color  ?? '#22d3a0'
     return tx.expense_category?.color ?? '#f5476a'
   }
+
+  const isMobile = useIsMobile()
 
   // ── Mobile render ──────────────────────────────────────────────────────────
   if (isMobile) {
@@ -422,30 +527,49 @@ export default function Transactions() {
           </div>
         </div>
 
-        {/* Filtres rapides — scroll horizontal */}
-        <div style={{ display:'flex', gap:8, overflowX:'auto', marginBottom:12, paddingBottom:4, scrollbarWidth:'none' }}
-          className="filters-row">
-          <select className="input" style={{ flex:'0 0 auto', minWidth:120, fontSize:13, padding:'8px 12px' }}
-            value={filters.type} onChange={e => setFilter('type', e.target.value)}>
-            <option value="all">Tous types</option>
-            <option value="income">Revenus</option>
-            <option value="expense">Dépenses</option>
-            <option value="transfer">Transferts</option>
-          </select>
-          <select className="input" style={{ flex:'0 0 auto', minWidth:140, fontSize:13, padding:'8px 12px' }}
-            value={filters.sort} onChange={e => setFilter('sort', e.target.value)}>
-            <option value="date_desc">Date ↓</option>
-            <option value="date_asc">Date ↑</option>
-            <option value="amount_desc">Montant ↓</option>
-            <option value="amount_asc">Montant ↑</option>
-          </select>
-          <input className="input" type="text" placeholder="🔍 Rechercher…"
-            style={{ flex:'0 0 auto', minWidth:160, fontSize:13, padding:'8px 12px' }}
+        {/* Barre recherche */}
+        <div style={{ position:'relative', marginBottom:10 }}>
+          <svg style={{ position:'absolute', left:13, top:'50%', transform:'translateY(-50%)', color:'var(--text3)', pointerEvents:'none' }}
+            width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input className="input" type="text" placeholder="Rechercher une transaction…"
+            style={{ paddingLeft:40, fontSize:15 }}
             value={filters.search} onChange={e => setFilter('search', e.target.value)} />
-          {hasFilter && (
-            <button className="btn btn-ghost btn-sm" style={{ flexShrink:0 }} onClick={resetFilters}>Réinit.</button>
+          {filters.search && (
+            <button onClick={() => setFilter('search', '')} style={{
+              position:'absolute', right:12, top:'50%', transform:'translateY(-50%)',
+              background:'none', border:'none', cursor:'pointer', color:'var(--text3)',
+              fontSize:16, padding:4, lineHeight:1,
+            }}>✕</button>
           )}
         </div>
+
+        {/* Filtres rapides — chips horizontaux */}
+        <div style={{ display:'flex', gap:8, overflowX:'auto', marginBottom:10, paddingBottom:2, scrollbarWidth:'none' }}>
+          {[
+            { v:'all',      l:'Tous' },
+            { v:'expense',  l:'💸 Dépenses' },
+            { v:'income',   l:'💰 Revenus' },
+            { v:'transfer', l:'↔ Transferts' },
+          ].map(o => (
+            <button key={o.v} onClick={() => setFilter('type', o.v)} style={{
+              flexShrink:0, padding:'7px 14px', borderRadius:100,
+              border:`1px solid ${filters.type===o.v ? 'rgba(124,108,252,.4)' : 'var(--border)'}`,
+              background: filters.type===o.v ? 'rgba(124,108,252,.15)' : 'var(--surface2)',
+              color: filters.type===o.v ? 'var(--accent2)' : 'var(--text2)',
+              fontSize:13, fontWeight: filters.type===o.v ? 700 : 500,
+              cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
+              WebkitTapHighlightColor:'transparent',
+            }}>{o.l}</button>
+          ))}
+        </div>
+
+        <AdvancedFilters
+          filters={filters} setFilter={setFilter} resetFilters={resetFilters}
+          hasFilter={hasFilter}
+          incomeCategories={incomeCategories} expenseCategories={expenseCategories}
+        />
 
         {/* Résumé rapide */}
         {!loading && filtered.length > 0 && (
